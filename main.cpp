@@ -120,6 +120,7 @@ void printBoard(board board)
 {
     for (int i = 0; i < 64; i++)
     {
+        if (i%8 == 0) printf("%d  ", i/8 + 1);
         std::string printString = ".";
 
         if (((board.whitePawns >> i) & 1) == 1)
@@ -131,12 +132,12 @@ void printBoard(board board)
             printString = "bP";
         }
 
-        printf("%s\t", printString.c_str());
+        printf("%-3s", printString.c_str());
 
         if ((i+1)%8 == 0) printf("\n");
 
     }
-    printf("A\tB\tC\tD\tE\tF\tG\tH\n");
+    printf("   A  B  C  D  E  F  G  H\n");
     return;
 }
 
