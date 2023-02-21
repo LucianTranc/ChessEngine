@@ -7,7 +7,7 @@
 
 typedef u_int64_t U64;
 
-// hex value representing the ranks
+// hex value representing the files and ranks
 const U64 FILE_A = 0x0101010101010101ULL;
 const U64 FILE_B = FILE_A << 1;
 const U64 FILE_C = FILE_A << 2;
@@ -44,12 +44,12 @@ enum {
     A8, B8, C8, D8, E8, F8, G8, H8
 };
 
-/*
-constexpr U64 west(U64 b) { return (b & ~FILE_A) << 1; }
-constexpr U64 east(U64 b) { return (b & ~FILE_H) >> 1; }
-constexpr U64 north_west(U64 b) { return (b & ~FILE_A) << 9; }
-constexpr U64 north_east(U64 b) { return (b & ~FILE_H) << 7; }
-*/
+
+// constexpr U64 west(U64 b) { return (b & ~FILE_H) << 1; }
+// constexpr U64 east(U64 b) { return (b & ~FILE_A) >> 1; }
+// constexpr U64 north_west(U64 b) { return (b & ~FILE_H) << 9; }
+// constexpr U64 north_east(U64 b) { return (b & ~FILE_A) << 7; }
+
 
 inline int pop_LSB(U64 &b) {
     int i = get_LSB(b);
@@ -81,8 +81,14 @@ void printBitBoard(U64 bitboard);
 int getPositionIndex(position pos);
 void movePiece(board * board, int start, int end);
 bool validateMove(board * board, position start, position end);
-U64 getWhitePawnMoves(board * board, int p);
-U64 getBlackPawnMoves(board * board, int p);
+U64 getPawnAttacks(int square, U64 occupancy, bool isWhite);
+U64 getRookAttacks(int square, U64 occupancy);
+U64 getBishopAttacks(int square, U64 occupancy);
+U64 getKnightAttacks(int square);
+U64 getQueenAttacks(int square, U64 occupancy);
+U64 getKingAttacks(int square);
+
+
 U64 maskBishopAttacks(int square);
 U64 maskRookAttacks(int square);
 
@@ -103,8 +109,27 @@ int main()
 
     printBoard(testBoard);
 
-    std::string move;
+    U64 occupancy = 0ULL;
 
+    set_bit(occupancy, D5);
+    set_bit(occupancy, G5);
+
+    printf("Occupancy:\n");
+
+    printBitBoard(occupancy);
+
+    printf("Rook Attacks:\n");
+
+    printBitBoard(getKingAttacks(H5));
+
+
+
+    //getRookMoves(A2, testBaord.allPieces);
+    //getRookAttacks(A2, testBaord.allPieces);
+    
+    
+    /*std::string move;
+    // game loop
     while (running)
     {
         std::cout << "enter move: ";
@@ -145,8 +170,7 @@ int main()
 
         printBoard(testBoard);
 
-    }
-
+    }*/
 
     return 0;
 }
@@ -254,7 +278,7 @@ void movePiece(board * board, int start, int end)
     board->allPieces = board->whitePawns | board->blackPawns;
 
 }
-
+/*
 bool validateMove(board * board, position start, position end)
 {
 
@@ -296,67 +320,256 @@ bool validateMove(board * board, position start, position end)
 
     return false;
 }
+*/
+// there should be a get Peice Moves for each piece, and a 
+// get Peice Attacks for each peice
+// the moves and attacks functions should only use the position of the peice
+// and the position of all other peices regardless of if they are black or white
 
-// get all possible pawn moves
-U64 getWhitePawnMoves(board * board, int p)
+U64 getPawnAttacks(int square, U64 occupancy, bool isWhite)
 {
     U64 pawnMoves = 0ULL;
 
-    // if the pawn is on the second rank, it can move forward 2 spots
+    int direction = isWhite ? 1 : -1;
 
-    printf("Getting white pawn moves:\n");
+    // if the pawn is in the final rank it has no moves
+    // this is just a redundancy in case promotion doesn't work
+    if ( isWhite && get_bit(RANK_8, square)) return pawnMoves;
+    if (!isWhite && get_bit(RANK_1, square)) return pawnMoves;
 
-    printf("All pieces: \n");
-
-    printBitBoard(board->allPieces);
-
-    if (get_bit(board->blackPawns, p+9))
+    if (get_bit(occupancy, square + (direction * 9)))
     {
-        set_bit(pawnMoves, p+9);
+        set_bit(pawnMoves, square + (direction * 9));
     }
 
-    if (get_bit(board->blackPawns, p+7))
+    if (get_bit(occupancy, square + (direction * 7)))
     {
-        set_bit(pawnMoves, p+7);
+        set_bit(pawnMoves, square + (direction * 7));
     }
 
-    if (!get_bit(board->allPieces, p+8))
+    if (!get_bit(occupancy, square + (direction * 8)))
     {
-        set_bit(pawnMoves, p+8);
-    }
+        set_bit(pawnMoves, square + (direction * 8));
 
-    if (get_bit(RANK_2, p) && !get_bit(board->allPieces, p+16))
-    {
-        set_bit(pawnMoves, p+16);
+        // only check for square 2 ahead if the square 1 ahead is free
+        if (get_bit(RANK_2, square) && !get_bit(occupancy, square + (direction * 16)))
+        {
+            set_bit(pawnMoves, square + (direction * 16));
+        }
     }
-
 
     return pawnMoves;
 }
 
-U64 getBlackPawnMoves(board * board, int p)
+U64 getRookAttacks(int square, U64 occupancy)
 {
-    U64 pawnMoves = 0ULL;
-
-    if (get_bit(board->whitePawns, p-9))
+    U64 attacks = 0ULL;
+    
+    int rank = square / 8;
+    int file = square % 8;
+    
+    for (int r = rank + 1; r < 8; r++)
     {
-        set_bit(pawnMoves, p-9);
+        set_bit(attacks, r * 8 + file);
+        if (get_bit(occupancy, r * 8 + file)) break;
     }
 
-    if (get_bit(board->whitePawns, p-7))
+    for (int r = rank - 1; r >= 0; r--)
     {
-        set_bit(pawnMoves, p-7);
+        set_bit(attacks, r * 8 + file);
+        if (get_bit(occupancy, r * 8 + file)) break;
     }
 
-    if (!get_bit(board->allPieces, p-8))
+    for (int f = file + 1; f < 8; f++)
     {
-        set_bit(pawnMoves, p-8);
+        set_bit(attacks, rank * 8 + f);
+        if (get_bit(occupancy, rank * 8 + f)) break;
     }
-    if (get_bit(RANK_7, p) && !get_bit(board->allPieces, p-16))
+    
+    for (int f = file - 1; f >= 0; f--)
     {
-        set_bit(pawnMoves, p-16);
+        set_bit(attacks, rank * 8 + f);
+        if (get_bit(occupancy, rank * 8 + f)) break;
     }
-    return pawnMoves;
+    
+    return attacks;
+}
+
+U64 getBishopAttacks(int square, U64 occupancy)
+{
+    U64 attacks = 0ULL;
+    
+    int rank = square / 8;
+    int file = square % 8;
+    
+    for (int r = rank + 1, f = file + 1; r < 8 && f < 8; r++, f++)
+    {
+        set_bit(attacks, r * 8 + f);
+        if (get_bit(occupancy, r * 8 + f)) break;
+    }
+    
+    for (int r = rank + 1, f = file - 1; r < 8 && f >= 0; r++, f--)
+    {
+        set_bit(attacks, r * 8 + f);
+        if (get_bit(occupancy, r * 8 + f)) break;
+    }
+    
+    for (int r = rank - 1, f = file + 1; r >= 0 && f < 8; r--, f++)
+    {
+        set_bit(attacks, r * 8 + f);
+        if (get_bit(occupancy, r * 8 + f)) break;
+    }
+    
+    for (int r = rank - 1, f = file - 1; r >= 0 && f >= 0; r--, f--)
+    {
+        set_bit(attacks, r * 8 + f);
+        if (get_bit(occupancy, r * 8 + f)) break;
+    }
+    
+    return attacks;
+}
+
+U64 getKnightAttacks(int square)
+{
+
+    U64 attacks = 0ULL;
+
+    // north north west
+    // -    Can't be in file A
+    // -    Can't be in rank 1 or rank 2
+    if (!get_bit(FILE_A | RANK_1 | RANK_2, square))
+    {
+        set_bit(attacks, square - ((2*8) + 1));
+    }
+
+    // north west west
+    // -    Can't be in file A or file B
+    // -    Can't be in rank 1
+    if (!get_bit(FILE_A | FILE_B | RANK_1, square))
+    {
+        set_bit(attacks, square - ((1*8) + 2));
+    }
+
+    // south west west
+    // -    Can't be in file A or file B
+    // -    Can't be in rank 8
+    if (!get_bit(FILE_A | FILE_B | RANK_8, square))
+    {
+        set_bit(attacks, square + ((1*8) - 2));
+    }
+
+    // south south west
+    // -    Can't be in file A
+    // -    Can't be in rank 7 or rank 8
+    if (!get_bit(FILE_A | RANK_7 | RANK_8, square))
+    {
+        set_bit(attacks, square + ((2*8) - 1));
+    }
+    // south south east
+    // -    Can't be file H
+    // -    Can't be in rank 7 or rank 8
+    if (!get_bit(FILE_H | RANK_7 | RANK_8, square))
+    {
+        set_bit(attacks, square + ((2*8) + 1));
+    }
+
+    // south east east
+    // -    Can't be in file G or file H
+    // -    Can't be in rank 8
+
+    if (!get_bit(FILE_G | FILE_H | RANK_8, square))
+    {
+        set_bit(attacks, square + ((1*8) + 2));
+    }
+
+    // north east east
+    // -    Can't be in file G or file H
+    // -    Can't be in rank 1
+    if (!get_bit(FILE_G | FILE_H | RANK_1, square))
+    {
+        set_bit(attacks, square - ((1*8) - 2));
+    }
+    // north north east
+    // -    Can't be in file H
+    // -    Can't be in rank 1 or rank 2
+    if (!get_bit(FILE_H | RANK_1 | RANK_2, square))
+    {
+        set_bit(attacks, square - ((2*8) - 1));
+    }
+
+    return attacks;
+}
+
+U64 getKingAttacks(int square)
+{
+
+    U64 attacks = 0ULL;
+
+    // north
+    // -    Can't be in rank 1
+    if (!get_bit(RANK_1, square))
+    {
+        set_bit(attacks, square - 8);
+    }
+
+    // north west
+    // -    Can't be in file A
+    // -    Can't be in rank 1
+    if (!get_bit(FILE_A | RANK_1, square))
+    {
+        set_bit(attacks, square - (8 + 1));
+    }
+
+    // west
+    // -    Can't be in file A
+    if (!get_bit(FILE_A, square))
+    {
+        set_bit(attacks, square - 1);
+    }
+
+    // south west
+    // -    Can't be in file A
+    // -    Can't be in rank 8
+    if (!get_bit(FILE_A | RANK_8, square))
+    {
+        set_bit(attacks, square + (8 - 1));
+    }
+    // south
+    // -    Can't be in rank 8
+    if (!get_bit(RANK_8, square))
+    {
+        set_bit(attacks, square + 8);
+    }
+
+    // south east
+    // -    Can't be in file H
+    // -    Can't be in rank 8
+
+    if (!get_bit(FILE_H | RANK_8, square))
+    {
+        set_bit(attacks, square + (8 + 1));
+    }
+
+    // east
+    // -    Can't be in file H
+    if (!get_bit(FILE_H, square))
+    {
+        set_bit(attacks, square + 1);
+    }
+    // north east
+    // -    Can't be in file H
+    // -    Can't be in rank 1
+    if (!get_bit(FILE_H | RANK_1, square))
+    {
+        set_bit(attacks, square - (8 - 1));
+    }
+
+    return attacks;
+}
+
+U64 getQueenAttacks(int square, U64 occupancy)
+{
+    return getBishopAttacks(square, occupancy) | getRookAttacks(square, occupancy);
 }
 
 // mask bishop attacks
@@ -478,5 +691,19 @@ For each square on the board, generate the mask for the given sliding peice,
 
 Then for generating the magic you can just use trial and error.
 
+Next steps:
+1. Write your own attack and mask functions for rooks and bishops.
+2. Make the game work with rooks and bishops
+3. Add Knights
+4. Add King
+5. Add Queen (Bishop + Rook)
+6. Test all the rules and make sure game works
+7. Do AI
+8. If Basic AI works then add the bishop and knight attack lookup tables
 
+For bishop and knight lookup attack lookup tables:
+1. Generate the magic numbers for the rook and bishop using:
+    https://www.chessprogramming.org/Looking_for_Magics#:~:text=Magic%20Bitboards%20is%20probably%20the,of%20a%20bishop%20or%20rook. 
+        - Write your own attack and mask functions for rooks and bishops
+        - Copy the rest of the code and translate it to C++
 */
