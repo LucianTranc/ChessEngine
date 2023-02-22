@@ -33,7 +33,7 @@ const U64 RANK_8 = RANK_1 << 56;
 #define get_LSB(b) (__builtin_ctzll(b))
 
 // square encoding
-enum {
+enum Square {
     A1, B1, C1, D1, E1, F1, G1, H1,
     A2, B2, C2, D2, E2, F2, G2, H2,
     A3, B3, C3, D3, E3, F3, G3, H3,
@@ -44,12 +44,21 @@ enum {
     A8, B8, C8, D8, E8, F8, G8, H8
 };
 
-
-// constexpr U64 west(U64 b) { return (b & ~FILE_H) << 1; }
-// constexpr U64 east(U64 b) { return (b & ~FILE_A) >> 1; }
-// constexpr U64 north_west(U64 b) { return (b & ~FILE_H) << 9; }
-// constexpr U64 north_east(U64 b) { return (b & ~FILE_A) << 7; }
-
+// overloading << operator to print Square enum names
+std::ostream &operator << (std::ostream& stream, Square s)
+{
+    const std::string squareNames[] = {
+        "A1", "B1", "C1", "D1", "E1", "F1", "G1", "H1",
+        "A2", "B2", "C2", "D2", "E2", "F2", "G2", "H2",
+        "A3", "B3", "C3", "D3", "E3", "F3", "G3", "H3",
+        "A4", "B4", "C4", "D4", "E4", "F4", "G4", "H4",
+        "A5", "B5", "C5", "D5", "E5", "F5", "G5", "H5",
+        "A6", "B6", "C6", "D6", "E6", "F6", "G6", "H6",
+        "A7", "B7", "C7", "D7", "E7", "F7", "G7", "H7",
+        "A8", "B8", "C8", "D8", "E8", "F8", "G8", "H8"
+    };
+   return stream << squareNames[s];
+}
 
 inline int pop_LSB(U64 &b) {
     int i = get_LSB(b);
@@ -57,40 +66,41 @@ inline int pop_LSB(U64 &b) {
     return i;
 }
 
+enum Piece{
+    pawn, knight, bishop, rook, queen, king
+};
+
+// overloading << operator to print Piece enum names
+std::ostream &operator << (std::ostream& stream, Piece s)
+{
+    const std::string squareNames[] = {
+        "P", "N", "B", "R", "Q", "K"
+    };
+   return stream << squareNames[s];
+}
+
 struct board
 {
-    U64 allPieces;
-    U64 whitePieces;
-    U64 blackPieces;
-    U64 whitePawns;
-    U64 blackPawns;
+    U64 white[6];
+    U64 black[6];
+    U64 whiteOccupancy;
+    U64 blackOccupancy;
+    U64 occupancy;
     bool whiteToMove;
 } 
 typedef board;
 
-struct position
-{
-    char file;
-    int rank;
-} 
-typedef position;
-
-void printBoard(board board);
-void printBoardWhiteDown(board board);
+void printBoard(board * board);
 void printBitBoard(U64 bitboard);
-int getPositionIndex(position pos);
-void movePiece(board * board, int start, int end);
-bool validateMove(board * board, position start, position end);
+void movePiece(int start, int end, board * board);
 U64 getPawnAttacks(int square, U64 occupancy, bool isWhite);
 U64 getRookAttacks(int square, U64 occupancy);
 U64 getBishopAttacks(int square, U64 occupancy);
 U64 getKnightAttacks(int square);
 U64 getQueenAttacks(int square, U64 occupancy);
 U64 getKingAttacks(int square);
-
-
-U64 maskBishopAttacks(int square);
-U64 maskRookAttacks(int square);
+int getPieceColour(int p, board * board);
+int getPieceType(int p, board * board);
 
 bool running = true;
 
@@ -100,38 +110,58 @@ int main()
 
     // define U64 variables and print them as boards
 
-    U64 whitePawns = RANK_2;
-    U64 blackPawns = RANK_7;
-    U64 whitePeices = whitePawns;
-    U64 blackPeices = blackPawns;
 
-    board testBoard = {whitePeices | blackPeices, whitePeices, blackPeices, whitePawns, blackPawns, true};
-
-    printBoard(testBoard);
-
-    U64 occupancy = 0ULL;
-
-    set_bit(occupancy, D5);
-    set_bit(occupancy, G5);
-
-    printf("Occupancy:\n");
-
-    printBitBoard(occupancy);
-
-    printf("Rook Attacks:\n");
-
-    printBitBoard(getKingAttacks(H5));
-
-
-
-    //getRookMoves(A2, testBaord.allPieces);
-    //getRookAttacks(A2, testBaord.allPieces);
+    board testBoard;
     
-    
-    /*std::string move;
-    // game loop
+    for (int i = 0; i < 6; i++)
+    {
+        testBoard.white[i] = 0ULL;
+        testBoard.black[i] = 0ULL;
+    }
+    testBoard.whiteOccupancy = 0ULL;
+    testBoard.blackOccupancy = 0ULL;
+    testBoard.occupancy = 0ULL;
+    testBoard.whiteToMove = true;
+
+    testBoard.white[pawn] = RANK_2;
+    set_bit(testBoard.white[bishop], C1);
+    set_bit(testBoard.white[bishop], F1);
+    set_bit(testBoard.white[knight], B1);
+    set_bit(testBoard.white[knight], G1);
+    set_bit(testBoard.white[rook], A1);
+    set_bit(testBoard.white[rook], H1);
+    set_bit(testBoard.white[queen], D1);
+    set_bit(testBoard.white[king], E1);
+
+    testBoard.black[pawn] = RANK_7;
+    set_bit(testBoard.black[pawn], B3);
+
+    set_bit(testBoard.black[bishop], C8);
+    set_bit(testBoard.black[bishop], F8);
+    set_bit(testBoard.black[knight], B8);
+    set_bit(testBoard.black[knight], G8);
+    set_bit(testBoard.black[rook], A8);
+    set_bit(testBoard.black[rook], H8);
+    set_bit(testBoard.black[queen], D8);
+    set_bit(testBoard.black[king], E8);
+
+    for (int i = 0; i < 6; i++)
+    {
+        testBoard.whiteOccupancy |= testBoard.white[i];
+    }
+
+    for (int i = 0; i < 6; i++)
+    {
+        testBoard.blackOccupancy |= testBoard.black[i];
+    }
+
+    testBoard.occupancy = testBoard.whiteOccupancy | testBoard.blackOccupancy;
+
+    std::string move;
     while (running)
     {
+        printBoard(&testBoard);
+
         std::cout << "enter move: ";
         std::getline(std::cin, move);
 
@@ -146,97 +176,120 @@ int main()
             continue;
         }
 
-        position moveStart = {static_cast<char>(islower(move[0])?toupper(move[0]):move[0]), move[1] - '0'};
-        position moveEnd = {static_cast<char>(islower(move[3])?toupper(move[3]):move[3]), move[4] - '0'};
-
-        // std::cout<<moveStart.file<<moveStart.rank<<std::endl;
-        // std::cout<<moveEnd.file<<moveEnd.rank<<std::endl;
+        int moveStart = ((move[1] - '0' - 1) * 8) + (islower(move[0]) ? toupper(move[0]) : move[0]) - 'A';
+        int moveEnd = ((move[4] - '0' - 1) * 8) + (islower(move[3]) ? toupper(move[3]) : move[3]) - 'A';
 
         // valid move?
 
-        if (validateMove(&testBoard, moveStart, moveEnd))
+        // check which piece is being moved from move start
+        //      int getPieceType(board)
+
+        int colour = getPieceColour(moveStart, &testBoard);
+
+        if (colour != testBoard.whiteToMove)
         {
-            printf("valid move\n");
-            movePiece(&testBoard, getPositionIndex(moveStart), getPositionIndex(moveEnd));
-            testBoard.whiteToMove = !testBoard.whiteToMove;
+            std::cout<<"invalid move, wrong colour"<<std::endl;
+            continue;
         }
-        else
+
+        int type = getPieceType(moveStart, &testBoard);
+
+        // calculate the attacks of the selected piece
+
+        U64 attacks = 0ULL;
+
+        switch (type)
         {
-            printf("invalid move\n");
+            case 0:
+                attacks = getPawnAttacks(moveStart, testBoard.occupancy, testBoard.whiteToMove);
+                break;
+            case 1:
+                attacks = getKnightAttacks(moveStart);
+                break;
+            case 2:
+                attacks = getBishopAttacks(moveStart, testBoard.occupancy);
+                break;
+            case 3:
+                attacks = getRookAttacks(moveStart, testBoard.occupancy);
+                break;
+            case 4:
+                attacks = getQueenAttacks(moveStart, testBoard.occupancy);
+                break;
+            case 5:
+                attacks = getKingAttacks(moveStart);
+                break;
+            default:
+                printf("Error\n");
+                continue;
         }
+
+        printf("Attacks: \n");
+        printBitBoard(attacks);
+
+        // if the move end is not in the attacks then invalid
+        if (!get_bit(attacks, moveEnd))
+        {
+            printf("invalid move, not in possible attack squares");
+            continue;
+        }
+
+        // if the move is in attacks but the player already has a piece in that square then invalid
+        if (get_bit(attacks, moveEnd) && 
+            get_bit(testBoard.whiteToMove ? testBoard.whiteOccupancy : testBoard. blackOccupancy, moveEnd))
+        {
+            printf("invalid move, you cannot capture your own pieces");
+            continue;
+        }
+
+        // if the player is checked and the move does not resolve the check then invalid
+        //      TODO: Calculate checks
+
+        // if this piece is pinned and the move does not resolve the pin then invalid
+        //      TODO: Calculate pins
         
+        // if the end square is in the attacks and the square is empty then move to it
 
-        // move peice
+        if (get_bit(attacks, moveEnd) && !get_bit(testBoard.occupancy, moveEnd))
+        {
+            printf("move piece\n");
+        }
 
-        printBoard(testBoard);
 
-    }*/
+        // if the end square is in the attacks and the square is occupied by an opponent's peice then capture
+
+    }
 
     return 0;
 }
 
-void printBoard(board board)
+void printBoard(board * board)
 {
-    if (board.whiteToMove)
-    {
-        printf("\nWhite to move\n");
-    }
-    else
-    {
-        printf("\nBlack to move\n");
-    }
+    if (board->whiteToMove) printf("\nWhite to move\n");
+    else                    printf("\nBlack to move\n");
+    
     for (int i = 0; i < 64; i++)
     {
+        // print ranks
         if (i%8 == 0) printf("%d  ", i/8 + 1);
-        std::string printString = ".";
 
-        if (((board.whitePawns >> i) & 1) == 1)
+        int type = getPieceType(i, board);
+        int colour = getPieceColour(i, board);
+
+        if (type == -1 || colour == -1)
         {
-            printString = "wP";
-        }
-        else if (((board.blackPawns >> i) & 1) == 1)
-        {
-            printString = "bP";
+            std::cout<<".  ";
+            if ((i+1)%8 == 0) std::cout<<std::endl;
+            continue;
         }
 
-        printf("%-3s", printString.c_str());
+        if (colour == 1) std::cout<<"w";
+        if (colour == 0) std::cout<<"b";
+        std::cout<<(Piece)type<<" ";
 
-        if ((i+1)%8 == 0) printf("\n");
+        if ((i+1)%8 == 0) std::cout<<std::endl;
 
     }
     printf("   A  B  C  D  E  F  G  H\n");
-    return;
-}
-
-void printBoardWhiteDown(board board)
-{
-    std::string boardToPrint[64];
-
-    for (int i = 63; i >= 0; i--)
-    {
-        if (((board.whitePawns >> i) & 1) == 1)
-        {
-            boardToPrint[i] = "wP";
-        }
-        else if (((board.blackPawns >> i) & 1) == 1)
-        {
-            boardToPrint[i] = "bP";
-        }
-        else
-        {
-            boardToPrint[i] = '.';
-        }
-    }
-
-    for (int i = 7; i >= 0; i--)
-    {
-        for (int j = 0; j < 8; j++)
-        {
-            printf("%s\t", boardToPrint[(i*8)+j].c_str());
-        }
-        printf("\n\n");
-    }
-
     return;
 }
 
@@ -254,77 +307,39 @@ void printBitBoard(U64 bitboard)
     return;
 }
 
-int getPositionIndex(position pos)
+void movePiece(int start, int end, board * board)
 {
-    return pos.file - 'A' + ((pos.rank - 1) * 8);
+
+    // will this function handle captures? not sure.
+
+
+
+
+    // TODO: calculate if move generates a check
+    // TODO: calculate if move pins a piece
+
 }
+
 
 void movePiece(board * board, int start, int end)
 {
-    if (get_bit(board->whitePawns, start))
+    if (get_bit(board->white[pawn], start))
     {
-        clear_bit(board->whitePawns, start);
-        set_bit(board->whitePawns, end);
+        clear_bit(board->white[pawn], start);
+        set_bit(board->white[pawn], end);
 
         printf("moved white pawn\n");
     }
-    else if (get_bit(board->blackPawns, start))
+    else if (get_bit(board->black[pawn], start))
     {
-        clear_bit(board->blackPawns, start);
-        set_bit(board->blackPawns, end);
+        clear_bit(board->black[pawn], start);
+        set_bit(board->black[pawn], end);
         printf("moved black pawn\n");
     }
 
-    board->allPieces = board->whitePawns | board->blackPawns;
+    board->occupancy = board->white[pawn] | board->black[pawn];
 
 }
-/*
-bool validateMove(board * board, position start, position end)
-{
-
-    // check if position selected contains a piece correspending with board->whiteToMove
-    // find which peice is moving, call a method that calculates the possible allowed moves for
-    // that peice type
-    if (get_bit(board->whitePawns, getPositionIndex(start)) && board->whiteToMove)
-    {
-        U64 pawnMoves = getWhitePawnMoves(board, getPositionIndex(start));
-
-        printf("White Pawn moves: \n");
-        printBitBoard(pawnMoves);
-
-        if (get_bit(pawnMoves, getPositionIndex(end)))
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-    else if (get_bit(board->blackPawns, getPositionIndex(start)) && !board->whiteToMove)
-    {
-        U64 pawnMoves = getBlackPawnMoves(board, getPositionIndex(start));
-
-        printf("Black Pawn moves: \n");
-        printBitBoard(pawnMoves);
-
-        if (get_bit(pawnMoves, getPositionIndex(end)))
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-
-    return false;
-}
-*/
-// there should be a get Peice Moves for each piece, and a 
-// get Peice Attacks for each peice
-// the moves and attacks functions should only use the position of the peice
-// and the position of all other peices regardless of if they are black or white
 
 U64 getPawnAttacks(int square, U64 occupancy, bool isWhite)
 {
@@ -337,12 +352,16 @@ U64 getPawnAttacks(int square, U64 occupancy, bool isWhite)
     if ( isWhite && get_bit(RANK_8, square)) return pawnMoves;
     if (!isWhite && get_bit(RANK_1, square)) return pawnMoves;
 
-    if (get_bit(occupancy, square + (direction * 9)))
+    if (!(!isWhite && get_bit(FILE_A, square)) &&
+        !( isWhite && get_bit(FILE_H, square)) &&
+        get_bit(occupancy, square + (direction * 9)))
     {
         set_bit(pawnMoves, square + (direction * 9));
     }
 
-    if (get_bit(occupancy, square + (direction * 7)))
+    if (!( isWhite && get_bit(FILE_A, square)) &&
+        !(!isWhite && get_bit(FILE_H, square)) &&
+        get_bit(occupancy, square + (direction * 7)))
     {
         set_bit(pawnMoves, square + (direction * 7));
     }
@@ -564,6 +583,8 @@ U64 getKingAttacks(int square)
         set_bit(attacks, square - (8 - 1));
     }
 
+    // TODO: Castle?
+
     return attacks;
 }
 
@@ -572,51 +593,38 @@ U64 getQueenAttacks(int square, U64 occupancy)
     return getBishopAttacks(square, occupancy) | getRookAttacks(square, occupancy);
 }
 
-// mask bishop attacks
-// https://github.com/maksimKorzh/chess_programming/blob/master/src/magics/magics.c
-U64 maskBishopAttacks(int square)
+int getPieceColour(int p, board * board)
 {
-    // attack bitboard
-    U64 attacks = 0ULL;
-    
-    // init files & ranks
-    int f, r;
-    
-    // init target files & ranks
-    int tr = square / 8;
-    int tf = square % 8;
-    
-    // generate attacks
-    for (r = tr + 1, f = tf + 1; r <= 6 && f <= 6; r++, f++) attacks |= (1ULL << (r * 8 + f));
-    for (r = tr + 1, f = tf - 1; r <= 6 && f >= 1; r++, f--) attacks |= (1ULL << (r * 8 + f));
-    for (r = tr - 1, f = tf + 1; r >= 1 && f <= 6; r--, f++) attacks |= (1ULL << (r * 8 + f));
-    for (r = tr - 1, f = tf - 1; r >= 1 && f >= 1; r--, f--) attacks |= (1ULL << (r * 8 + f));
-    
-    // return attack map for bishop on a given square
-    return attacks;
+    if (get_bit(board->whiteOccupancy, p))
+    {
+        return 1;
+    }
+    else if (get_bit(board->blackOccupancy, p))
+    {
+        return 0;
+    }
+
+    return -1;
 }
 
-// https://github.com/maksimKorzh/chess_programming/blob/master/src/magics/magics.c
-U64 maskRookAttacks(int square)
+int getPieceType(int p, board * board)
 {
-    // attacks bitboard
-    U64 attacks = 0ULL;
-    
-    // init files & ranks
-    int f, r;
-    
-    // init target files & ranks
-    int tr = square / 8;
-    int tf = square % 8;
-    
-    // generate attacks
-    for (r = tr + 1; r <= 6; r++) attacks |= (1ULL << (r * 8 + tf));
-    for (r = tr - 1; r >= 1; r--) attacks |= (1ULL << (r * 8 + tf));
-    for (f = tf + 1; f <= 6; f++) attacks |= (1ULL << (tr * 8 + f));
-    for (f = tf - 1; f >= 1; f--) attacks |= (1ULL << (tr * 8 + f));
-    
-    // return attack map for bishop on a given square
-    return attacks;
+    for (int i = 0; i < 6; i++)
+    {
+        if (get_bit(board->white[i], p))
+        {
+            return i;
+        }
+    }
+    for (int i = 0; i < 6; i++)
+    {
+        if (get_bit(board->black[i], p))
+        {
+            return i;
+        }
+    }
+
+    return -1;
 }
 
 /*
