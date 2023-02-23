@@ -104,7 +104,9 @@ typedef board;
 void printBoard(board * board);
 void printBitBoard(U64 bitboard);
 void movePiece(int start, int end, board * board);
-U64 getPawnAttacks(int square, U64 occupancy, Colour turn);
+U64 getPawnMoves(int square, U64 occupancy, Colour turn);
+U64 getLegalPawnAttacks(int square, U64 occupancy, Colour turn);
+U64 getPossiblePawnAttacks(int square, U64 occupancy, Colour turn);
 U64 getRookAttacks(int square, U64 occupancy);
 U64 getBishopAttacks(int square, U64 occupancy);
 U64 getKnightAttacks(int square);
@@ -113,6 +115,7 @@ U64 getKingAttacks(int square);
 int getPieceColour(int p, board * board);
 int getPieceType(int p, board * board);
 U64 getLegalMoves(int p, board * board);
+U64 getAttackers(int target, int attackingColour, board * board);
 
 bool running = true;
 
@@ -163,7 +166,6 @@ int main()
     }
 
     testBoard.totalOccupancy = testBoard.occupancy[white] | testBoard.occupancy[black];
-
 
     std::string move;
     while (running)
@@ -229,7 +231,7 @@ U64 getLegalMoves(int p, board * board)
     switch (type)
     {
         case 0:
-            legalMoves = getPawnAttacks(p, board->totalOccupancy, board->turn);
+            legalMoves = getPawnMoves(p, board->totalOccupancy, board->turn);
             break;
         case 1:
             legalMoves = getKnightAttacks(p);
@@ -256,19 +258,47 @@ U64 getLegalMoves(int p, board * board)
     // subtract the occupancy of team pieces
     legalMoves &= ~board->occupancy[colour];
 
-    printf("Legal Moves: \n");
+    printf("Psuedo Legal Moves: \n");
     printBitBoard(legalMoves);
 
     // if the player is checked and the move does not resolve the check then invalid
     //      TODO: Calculate checks
 
-    /*
-    if (getAttackers(kingIndex, board))
+    // if there are pieces attacking the king
+    if (getAttackers(get_LSB(board->pieces[colour][king]), colour ? white : black, board))
     {
-        // If the bitboard returned from getChecks isn't empty,
-        // then 
+        printf("The king is in check\n");
+
+        // initialize a copy of the current legal moves
+        U64 tempLegalMoves = legalMoves;
+
+        // create a new board
+        struct board tempBoard;
+
+        // while there are moves to check
+        while (tempLegalMoves)
+        {
+            // set the new board to the current value of the board
+            tempBoard = *board;
+
+            // pop the current legal move
+            int tempMove = pop_LSB(tempLegalMoves);
+
+            // move the piece to the current move on the copy of the board
+            movePiece(p, tempMove, &tempBoard);
+
+            // if the king has attackers after making that move then remove it from the legal moves
+            if (getAttackers(get_LSB(tempBoard.pieces[colour][king]), colour ? white : black, &tempBoard))
+            {
+                clear_bit(legalMoves, tempMove);
+            }
+
+        }
+
     }
-    */
+    
+    printf("Legal Moves: \n");
+    printBitBoard(legalMoves);
 
     // if this piece is pinned and the move does not resolve the pin then invalid
     //      TODO: Calculate pins
@@ -280,41 +310,44 @@ U64 getLegalMoves(int p, board * board)
 // get all pieces that attack position "target" that have a colour "colour", 
 U64 getAttackers(int target, int attackingColour, board * board)
 {
-    U64 attackers = board->occupancy[attackingColour];
+    U64 attackers = 0ULL;
+    U64 possibleAttackers = board->occupancy[attackingColour];
 
-    // get the attacks of every piece of attackingColour
-    //      need to loop through the positions of the bits in occupancy[attackingColour]
-    //      for each bit switch on getPiecetype to get attacks
-    //      if the target is on the attacks then set_bit(attackers, piece)
-
-    int attackerPosition = 0;
-
-    while (attackerPosition = pop_LSB(attackers))
+    while (possibleAttackers)
     {
-        /*int type = getPieceType(attackerPosition, board);
+        int attackerPosition = pop_LSB(possibleAttackers);
+        int type = getPieceType(attackerPosition, board);
+
+        U64 attacks = 0ULL;
+
         switch (type)
         {
             case 0:
-                legalMoves = getPawnAttacks(p, board->totalOccupancy, board->turn);
+                attacks = getPossiblePawnAttacks(attackerPosition, board->totalOccupancy, (Colour)attackingColour);
                 break;
             case 1:
-                legalMoves = getKnightAttacks(p);
+                attacks = getKnightAttacks(attackerPosition);
                 break;
             case 2:
-                legalMoves = getBishopAttacks(p, board->totalOccupancy);
+                attacks = getBishopAttacks(attackerPosition, board->totalOccupancy);
                 break;
             case 3:
-                legalMoves = getRookAttacks(p, board->totalOccupancy);
+                attacks = getRookAttacks(attackerPosition, board->totalOccupancy);
                 break;
             case 4:
-                legalMoves = getQueenAttacks(p, board->totalOccupancy);
+                attacks = getQueenAttacks(attackerPosition, board->totalOccupancy);
                 break;
             case 5:
-                legalMoves = getKingAttacks(p);
+                attacks = getKingAttacks(attackerPosition);
                 break;
             default:
-                legalMoves = 0ULL;
-        }*/
+                attacks = 0ULL;
+        }
+
+        if (get_bit(attacks, target))
+        {
+            set_bit(attackers, attackerPosition);
+        }
     }
     return attackers;
 }
@@ -409,7 +442,7 @@ void movePiece(int start, int end, board * board)
 
 }
 
-U64 getPawnAttacks(int square, U64 occupancy, Colour turn)
+U64 getPawnMoves(int square, U64 occupancy, Colour turn)
 {
     U64 pawnMoves = 0ULL;
 
@@ -419,20 +452,6 @@ U64 getPawnAttacks(int square, U64 occupancy, Colour turn)
     // this is just a redundancy in case promotion doesn't work
     if ( (turn == white) && get_bit(RANK_8, square)) return pawnMoves;
     if (!(turn == white) && get_bit(RANK_1, square)) return pawnMoves;
-
-    if (!(!(turn == white) && get_bit(FILE_A, square)) &&
-        !( (turn == white) && get_bit(FILE_H, square)) &&
-        get_bit(occupancy, square + (direction * 9)))
-    {
-        set_bit(pawnMoves, square + (direction * 9));
-    }
-
-    if (!( (turn == white) && get_bit(FILE_A, square)) &&
-        !(!(turn == white) && get_bit(FILE_H, square)) &&
-        get_bit(occupancy, square + (direction * 7)))
-    {
-        set_bit(pawnMoves, square + (direction * 7));
-    }
 
     if (!get_bit(occupancy, square + (direction * 8)))
     {
@@ -447,8 +466,61 @@ U64 getPawnAttacks(int square, U64 occupancy, Colour turn)
         }
     }
 
-    return pawnMoves;
+    return pawnMoves | getLegalPawnAttacks(square, occupancy, turn);
 }
+
+U64 getLegalPawnAttacks(int square, U64 occupancy, Colour turn)
+{
+    U64 pawnAttacks = 0ULL;
+
+    int direction = turn == white ? 1 : -1;
+
+    if ( (turn == white) && get_bit(RANK_8, square)) return pawnAttacks;
+    if (!(turn == white) && get_bit(RANK_1, square)) return pawnAttacks;
+
+    if (!(!(turn == white) && get_bit(FILE_A, square)) &&
+        !( (turn == white) && get_bit(FILE_H, square)) &&
+        get_bit(occupancy, square + (direction * 9)))
+    {
+        set_bit(pawnAttacks, square + (direction * 9));
+    }
+
+    if (!( (turn == white) && get_bit(FILE_A, square)) &&
+        !(!(turn == white) && get_bit(FILE_H, square)) &&
+        get_bit(occupancy, square + (direction * 7)))
+    {
+        set_bit(pawnAttacks, square + (direction * 7));
+    }
+
+    return pawnAttacks;
+
+}
+
+U64 getPossiblePawnAttacks(int square, U64 occupancy, Colour turn)
+{
+    U64 pawnAttacks = 0ULL;
+
+    int direction = turn == white ? 1 : -1;
+
+    if ( (turn == white) && get_bit(RANK_8, square)) return pawnAttacks;
+    if (!(turn == white) && get_bit(RANK_1, square)) return pawnAttacks;
+
+    if (!(!(turn == white) && get_bit(FILE_A, square)) &&
+        !( (turn == white) && get_bit(FILE_H, square)))
+    {
+        set_bit(pawnAttacks, square + (direction * 9));
+    }
+
+    if (!( (turn == white) && get_bit(FILE_A, square)) &&
+        !(!(turn == white) && get_bit(FILE_H, square)))
+    {
+        set_bit(pawnAttacks, square + (direction * 7));
+    }
+
+    return pawnAttacks;
+
+}
+
 
 U64 getRookAttacks(int square, U64 occupancy)
 {
