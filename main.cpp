@@ -27,9 +27,9 @@ const U64 RANK_7 = RANK_1 << 48;
 const U64 RANK_8 = RANK_1 << 56;
 
 
-#define set_bit(b, i) ((b) |= (1ULL << i))
-#define get_bit(b, i) ((b) & (1ULL << i))  
-#define clear_bit(b, i) ((b) &= ~(1ULL << i)) 
+#define set_bit(b, i) ((b) |= (1ULL << (i)))
+#define get_bit(b, i) ((b) & (1ULL << (i)))  
+#define clear_bit(b, i) ((b) &= ~(1ULL << (i))) 
 #define get_LSB(b) (__builtin_ctzll(b))
 
 inline int pop_LSB(U64 &b) {
@@ -97,6 +97,7 @@ struct board
     U64 pieces[2][6];
     U64 occupancy[2];
     U64 totalOccupancy;
+    U64 pinnedPieces;
     Colour turn;
 } 
 typedef board;
@@ -104,6 +105,7 @@ typedef board;
 void printBoard(board * board);
 void printBitBoard(U64 bitboard);
 void movePiece(int start, int end, board * board);
+void deletePiece(int position, board * board);
 U64 getPawnMoves(int square, U64 occupancy, Colour turn);
 U64 getLegalPawnAttacks(int square, U64 occupancy, Colour turn);
 U64 getPossiblePawnAttacks(int square, U64 occupancy, Colour turn);
@@ -116,6 +118,7 @@ int getPieceColour(int p, board * board);
 int getPieceType(int p, board * board);
 U64 getLegalMoves(int p, board * board);
 U64 getAttackers(int target, int attackingColour, board * board);
+int countSetBits(U64 board);
 
 bool running = true;
 
@@ -133,6 +136,7 @@ int main()
     testBoard.occupancy[white] = 0ULL;
     testBoard.occupancy[black] = 0ULL;
     testBoard.totalOccupancy = 0ULL;
+    testBoard.pinnedPieces = 0ULL;
     testBoard.turn = white;
 
     testBoard.pieces[white][pawn] = RANK_2;
@@ -261,13 +265,15 @@ U64 getLegalMoves(int p, board * board)
     printf("Psuedo Legal Moves: \n");
     printBitBoard(legalMoves);
 
-    // if the player is checked and the move does not resolve the check then invalid
-    //      TODO: Calculate checks
+    printf("Pinned pieces: \n");
+    printBitBoard(board->pinnedPieces);
 
-    // if there are pieces attacking the king
-    if (getAttackers(get_LSB(board->pieces[colour][king]), colour ? white : black, board))
+    // if the player is checked and the move does not resolve the check then invalid
+
+    // if the piece is pinned or there are pieces attacking the king
+    if (get_bit(board->pinnedPieces, p) || getAttackers(get_LSB(board->pieces[colour][king]), colour ? white : black, board))
     {
-        printf("The king is in check\n");
+        printf("The king is in check or piece is pinned\n");
 
         // initialize a copy of the current legal moves
         U64 tempLegalMoves = legalMoves;
@@ -299,9 +305,6 @@ U64 getLegalMoves(int p, board * board)
     
     printf("Legal Moves: \n");
     printBitBoard(legalMoves);
-
-    // if this piece is pinned and the move does not resolve the pin then invalid
-    //      TODO: Calculate pins
 
 
     return legalMoves;
@@ -396,6 +399,25 @@ void printBitBoard(U64 bitboard)
     return;
 }
 
+void deletePiece(int position, board * board)
+{
+    int type = getPieceType(position, board);
+    int colour = getPieceColour(position, board);
+
+    // relative compliment of occupancy
+    // basically subtract the given pieces from the list of w/b pieces
+    board->occupancy[colour] &= ~board->pieces[colour][type];
+
+    // flip the bits of the start and end positions
+    clear_bit(board->pieces[colour][type], position);
+
+    // add the given piece back to the set
+    board->occupancy[colour] |= board->pieces[colour][type];
+
+    board->totalOccupancy = board->occupancy[white] | board->occupancy[black];
+
+}
+
 void movePiece(int start, int end, board * board)
 {
 
@@ -435,11 +457,85 @@ void movePiece(int start, int end, board * board)
 
         board->occupancy[colour] |= board->pieces[colour][type];
         board->occupancy[capturedColour] |= board->pieces[capturedColour][capturedType];
+
+        board->totalOccupancy = board->occupancy[white] | board->occupancy[black];
+
     }
-    
-    // TODO: calculate if move generates a check
+    printf("Calculating pins:\n");
+
     // TODO: calculate if move pins a piece
 
+    // for every piece on the board, if deleting it means that the side is in check,
+    // then the piece is pinned
+
+    board->pinnedPieces = 0ULL;
+
+    U64 whitePieces = board->totalOccupancy;
+    U64 blackPieces = board->totalOccupancy;
+
+    struct board tempBoard;
+
+    while (whitePieces)
+    {
+        tempBoard = *board;
+
+        int piece = pop_LSB(whitePieces);
+
+        std::cout<<"peice: "<<(Square)piece<<std::endl;
+
+        int checksWithPiece = countSetBits(getAttackers(get_LSB(tempBoard.pieces[white][king]), black, &tempBoard));
+
+        printf("checks with piece = %d\n", checksWithPiece);
+
+        deletePiece(piece, &tempBoard);
+
+        int checksWithoutPiece = countSetBits(getAttackers(get_LSB(tempBoard.pieces[white][king]), black, &tempBoard));
+
+        printf("checks without piece = %d\n", checksWithoutPiece);
+
+        if (checksWithoutPiece > checksWithPiece)
+        {
+            set_bit(board->pinnedPieces, piece);
+        }
+
+    }
+
+    while (blackPieces)
+    {
+        tempBoard = *board;
+
+        int piece = pop_LSB(blackPieces);
+
+        std::cout<<"peice: "<<(Square)piece<<std::endl;
+
+        int checksWithPiece = countSetBits(getAttackers(get_LSB(tempBoard.pieces[black][king]), white, &tempBoard));
+
+        printf("checks with piece = %d\n", checksWithPiece);
+
+        deletePiece(piece, &tempBoard);
+
+        int checksWithoutPiece = countSetBits(getAttackers(get_LSB(tempBoard.pieces[black][king]), white, &tempBoard));
+
+        printf("checks without piece = %d\n", checksWithoutPiece);
+
+        if (checksWithoutPiece > checksWithPiece)
+        {
+            set_bit(board->pinnedPieces, piece);
+        }
+
+    }
+
+
+}
+
+int countSetBits(U64 board)
+{
+    unsigned int count = 0;
+    while (board) {
+        count += board & 1;
+        board >>= 1;
+    }
+    return count;
 }
 
 U64 getPawnMoves(int square, U64 occupancy, Colour turn)
