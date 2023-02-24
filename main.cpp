@@ -470,10 +470,12 @@ void movePiece(int start, int end, board * board)
 
     board->pinnedPieces = 0ULL;
 
-    U64 whitePieces = board->totalOccupancy;
-    U64 blackPieces = board->totalOccupancy;
+    U64 whitePieces = board->occupancy[white];
+    U64 blackPieces = board->occupancy[black];
 
     struct board tempBoard;
+
+    printf("WHITE\n");
 
     while (whitePieces)
     {
@@ -497,8 +499,9 @@ void movePiece(int start, int end, board * board)
         {
             set_bit(board->pinnedPieces, piece);
         }
-
     }
+
+    printf("BLACK\n");
 
     while (blackPieces)
     {
@@ -525,6 +528,57 @@ void movePiece(int start, int end, board * board)
 
     }
 
+    bool whiteHasLegalMove = false;
+    bool blackHasLegalMove = false;
+
+    whitePieces = board->occupancy[white];
+    blackPieces = board->occupancy[black];
+
+    while (whitePieces)
+    {
+        int piece = pop_LSB(whitePieces);
+
+        if (getLegalMoves(piece, board))
+        {
+            whiteHasLegalMove = true;
+            break;
+        }
+    }
+
+    while (blackPieces)
+    {
+        int piece = pop_LSB(blackPieces);
+
+        if (getLegalMoves(piece, board))
+        {
+            blackHasLegalMove = true;
+            break;
+        }
+    }
+
+    if (!whiteHasLegalMove)
+    {
+        if (getAttackers(get_LSB(tempBoard.pieces[white][king]), black, board))
+        {
+            printf("Checkmate, Black wins\n");
+        }
+        else
+        {
+            printf("Stalemate\n");
+        }
+    }
+
+    if (!blackHasLegalMove)
+    {
+        if (getAttackers(get_LSB(tempBoard.pieces[black][king]), white, board))
+        {
+            printf("Checkmate, Black wins\n");
+        }
+        else
+        {
+            printf("Stalemate\n");
+        }
+    }
 
 }
 
