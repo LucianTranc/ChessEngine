@@ -114,17 +114,17 @@ void Board::movePiece(int start, int end)
 
         int piece = pop_LSB(whitePieces);
 
-        std::cout<<"peice: "<<(Square)piece<<std::endl;
+        std::cout<<"W: peice: "<<(Square)piece<<std::endl;
 
         int checksWithPiece = countSetBits(tempBoard.getAttackers(get_LSB(tempBoard.pieces[white][king]), black));
 
-        printf("checks with piece = %d\n", checksWithPiece);
+        //printf("checks with piece = %d\n", checksWithPiece);
 
         tempBoard.deletePiece(piece);
 
         int checksWithoutPiece = countSetBits(tempBoard.getAttackers(get_LSB(tempBoard.pieces[white][king]), black));
 
-        printf("checks without piece = %d\n", checksWithoutPiece);
+        //printf("checks without piece = %d\n", checksWithoutPiece);
 
         if (checksWithoutPiece > checksWithPiece)
         {
@@ -140,17 +140,17 @@ void Board::movePiece(int start, int end)
 
         int piece = pop_LSB(blackPieces);
 
-        std::cout<<"peice: "<<(Square)piece<<std::endl;
+        std::cout<<"B: peice: "<<(Square)piece<<std::endl;
 
         int checksWithPiece = countSetBits(tempBoard.getAttackers(get_LSB(tempBoard.pieces[black][king]), white));
 
-        printf("checks with piece = %d\n", checksWithPiece);
+        //printf("checks with piece = %d\n", checksWithPiece);
 
         tempBoard.deletePiece(piece);
 
         int checksWithoutPiece = countSetBits(tempBoard.getAttackers(get_LSB(tempBoard.pieces[black][king]), white));
 
-        printf("checks without piece = %d\n", checksWithoutPiece);
+        //printf("checks without piece = %d\n", checksWithoutPiece);
 
         if (checksWithoutPiece > checksWithPiece)
         {
@@ -159,7 +159,7 @@ void Board::movePiece(int start, int end)
 
     }
 
-    bool whiteHasLegalMove = false;
+    /*bool whiteHasLegalMove = false;
     bool blackHasLegalMove = false;
 
     whitePieces = occupancy[white];
@@ -209,7 +209,7 @@ void Board::movePiece(int start, int end)
         {
             printf("Stalemate\n");
         }
-    }
+    }*/
 
 }
 
@@ -313,11 +313,16 @@ U64 Board::getLegalMoves(int p)
             // pop the current legal move
             int tempMove = pop_LSB(tempLegalMoves);
 
+            std::cout<<"checking move "<<(Square)tempMove<<std::endl;
+
             // move the piece to the current move on the copy of the board
             tempBoard.movePiece(p, tempMove);
 
+            printf("attackers: \n");
+            printBitBoard(tempBoard.getAttackers(get_LSB(tempBoard.pieces[colour][king]), colour ? white : black));
+
             // if the king has attackers after making that move then remove it from the legal moves
-            if (getAttackers(get_LSB(tempBoard.pieces[colour][king]), colour ? white : black))
+            if (tempBoard.getAttackers(get_LSB(tempBoard.pieces[colour][king]), colour ? white : black))
             {
                 clear_bit(legalMoves, tempMove);
             }
