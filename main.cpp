@@ -94,6 +94,22 @@ int main()
         printf("move piece\n");
         testBoard.movePiece(moveStart, moveEnd);
         testBoard.turn = testBoard.turn ? Colour::white : Colour::black;
+
+        GameState state = testBoard.getGameState();
+        
+        switch (state)
+        {
+            case whiteWin:
+                printf("Checkmate, White wins\n");
+                return 0;
+            case blackWin:
+                printf("Checkmate, Black wins\n");
+                return 0;
+            case stalemate:
+                printf("Stalemate\n");
+                return 0;
+        }
+
     }
 
     return 0;

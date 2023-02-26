@@ -87,6 +87,10 @@ static std::ostream &operator << (std::ostream& stream, Colour c)
    return stream << colourNames[c];
 }
 
+enum GameState {
+    active, whiteWin, blackWin, stalemate
+};
+
 // bitboard.cpp should have helper functions and macros
 static void printBitBoard(U64 bitboard)
 {
