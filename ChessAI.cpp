@@ -65,7 +65,8 @@ int ChessAI::max(Board * board, int depth, int alpha, int beta)
             max = score;
     }
     return max; */
-
+    if (board->getGameState() == whiteWin) return colour ? INT_MIN : INT_MAX;
+    if (board->getGameState() == blackWin) return colour ? INT_MAX : INT_MIN;
     if (depth == 0) return evaluatePosition(board);
 
     int max = INT_MIN;
@@ -117,7 +118,9 @@ int ChessAI::min(Board * board, int depth, int alpha, int beta)
     return min;
     */
 
-    if (depth == 0) return -evaluatePosition(board);
+    if (board->getGameState() == whiteWin) return colour ? INT_MIN : INT_MAX;
+    if (board->getGameState() == blackWin) return colour ? INT_MAX : INT_MIN;
+    if (depth == 0) return evaluatePosition(board);
 
     int min = INT_MAX;
 

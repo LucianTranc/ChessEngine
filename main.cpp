@@ -105,10 +105,6 @@ int main()
             printf("evaluations: %d\n", AI.evaluations);
         }
 
-        
-
-        
-        
         // move piece
         printf("move piece\n");
         testBoard.movePiece(moveStart, moveEnd);
@@ -119,12 +115,15 @@ int main()
         switch (state)
         {
             case whiteWin:
+                testBoard.printBoard();
                 printf("Checkmate, White wins\n");
                 return 0;
             case blackWin:
+                testBoard.printBoard();
                 printf("Checkmate, Black wins\n");
                 return 0;
             case stalemate:
+                testBoard.printBoard();
                 printf("Stalemate\n");
                 return 0;
         }
@@ -207,15 +206,8 @@ For each square on the board, generate the mask for the given sliding peice,
 
 Then for generating the magic you can just use trial and error.
 
-Next steps:
-1. Write your own attack and mask functions for rooks and bishops.
-2. Make the game work with rooks and bishops
-3. Add Knights
-4. Add King
-5. Add Queen (Bishop + Rook)
-6. Test all the rules and make sure game works
-7. Do AI
-8. If Basic AI works then add the bishop and knight attack lookup tables
+Possible Improvements: 
+
 
 For bishop and knight lookup attack lookup tables:
 1. Generate the magic numbers for the rook and bishop using:

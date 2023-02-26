@@ -49,7 +49,7 @@ void Board::deletePiece(int position)
 
 }
 
-void Board::movePiece(int start, int end)
+void Board::movePiece(int start, int end, bool calculatePins)
 {
 
     // check if capture
@@ -155,6 +155,8 @@ void Board::movePiece(int start, int end)
 
     // for every piece on the board, if deleting it means that the side is in check,
     // then the piece is pinned
+
+    if (!calculatePins) return;
 
     pinnedPieces = 0ULL;
 
@@ -319,7 +321,6 @@ U64 Board::getLegalMoves(int p)
         // initialize a copy of the current legal moves
         U64 tempLegalMoves = legalMoves;
 
-        // create a new board !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!WARNING!!!!!!!!!!!!!!!!!!!!!!
         Board tempBoard;
 
         // while there are moves to check
@@ -334,7 +335,7 @@ U64 Board::getLegalMoves(int p)
             // move the piece to the current move on the copy of the board
             // do I need to calculate pins here?
                 // pins have to do with the next move
-            tempBoard.movePiece(p, tempMove);
+            tempBoard.movePiece(p, tempMove, false);
 
             // if the king has attackers after making that move then remove it from the legal moves
             if (tempBoard.getAttackers(get_LSB(tempBoard.pieces[colour][king]), colour ? white : black))
@@ -427,9 +428,6 @@ GameState Board::getGameState()
             break;
         }
     }
-
-    if (whiteHasLegalMove) printf("white has legal move\n");
-    if (blackHasLegalMove) printf("black has legal move\n");
 
     if (turn == white && !whiteHasLegalMove)
     {

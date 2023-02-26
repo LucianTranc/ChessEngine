@@ -19,7 +19,7 @@ public:
     bool blackKingMoved = false;
 
     void printBoard();
-    void movePiece(int start, int end);
+    void movePiece(int start, int end, bool calculatePins = true);
     void deletePiece(int position);
     int getPieceColour(int p);
     int getPieceType(int p);
