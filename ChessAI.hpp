@@ -1,12 +1,17 @@
 #include "Board.hpp"
 
+
 class ChessAI
 {
 public:
-    // https://www.chessprogramming.org/Minimax
 
-    int max(Board * board, int depth);
-    int min(Board * board, int depth);
+    Colour colour;
+    int evaluations = 0;
+    
+    ChessAI(Colour c) : colour(c) {}
+
+    int max(Board * board, int depth, int alpha, int beta);
+    int min(Board * board, int depth, int alpha, int beta);
 
     void getRandomMove(int * start, int * end, Board * board);
     void getMove(int * start, int * end, Board * board, int ply);

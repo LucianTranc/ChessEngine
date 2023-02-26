@@ -57,7 +57,7 @@ int main()
 
     testBoard.totalOccupancy = testBoard.occupancy[white] | testBoard.occupancy[black];
 
-    ChessAI AI;
+    ChessAI AI(black);
 
     std::string move;
     while (running)
@@ -101,7 +101,8 @@ int main()
         }
         else
         {
-            AI.getRandomMove(&moveStart, &moveEnd, &testBoard);
+            AI.getMove(&moveStart, &moveEnd, &testBoard, 4);
+            printf("evaluations: %d\n", AI.evaluations);
         }
 
         

@@ -7,12 +7,57 @@ void ChessAI::getMove(int * start, int * end, Board * board, int ply)
     // start with basic min max search
 
     // call depth first search (ply) moves deep
+    evaluations = 0;
+    int bestScore = INT_MIN;
+    int bestMoveStart = 0;
+    int bestMoveEnd = 0;
+
+    U64 piecesToCheck = board->occupancy[board->turn];
+
+    Board boardCopy = *board;
+
+    while (piecesToCheck)
+    {
+        boardCopy = *board;
+
+        int piece = pop_LSB(piecesToCheck);
+
+        U64 legalMoves = boardCopy.getLegalMoves(piece);
+        std::cout<<"Piece: "<<(Square)piece<<", Legal Moves: "<<countSetBits(legalMoves)<<std::endl;
+
+        while (legalMoves)
+        {
+            int move = pop_LSB(legalMoves);
+
+            boardCopy = *board;
+            boardCopy.movePiece(piece, move);
+            boardCopy.turn = boardCopy.turn ? white : black;
+
+            int score = min(&boardCopy, ply - 1, INT_MIN, INT_MAX);
+
+            std::cout<<"Move: "<<(Square)move<<", Score: "<<score<<std::endl;
+
+            if (score > bestScore)
+            {
+                bestScore = score;
+                bestMoveStart = piece;
+                bestMoveEnd = move;
+                std::cout<<"Best move: "<<(Square)bestMoveStart<<", "<<(Square)bestMoveEnd<<std::endl;
+            }
+        }
+    }
+
+    *start = bestMoveStart;
+    *end = bestMoveEnd;
 
 }
 
-int ChessAI::max(Board * board, int depth)
+int ChessAI::max(Board * board, int depth, int alpha, int beta)
 {
-    /* if ( depth == 0 ) return evaluate();
+    //printf("max depth: %d\n", depth);
+    // https://www.chessprogramming.org/Minimax
+    /*
+    if ( depth == 0 ) return evaluate();
     int max = -oo;
     for ( all moves) {
         score = mini( depth - 1 );
@@ -25,12 +70,87 @@ int ChessAI::max(Board * board, int depth)
 
     int max = INT_MIN;
 
-    // loop through each move
+    U64 piecesToCheck = board->occupancy[board->turn];
 
+    Board boardCopy = *board;
+
+    while (piecesToCheck)
+    {
+        boardCopy = *board;
+
+        int piece = pop_LSB(piecesToCheck);
+
+        U64 legalMoves = boardCopy.getLegalMoves(piece);
+
+        while (legalMoves)
+        {
+            int move = pop_LSB(legalMoves);
+
+            boardCopy = *board;
+            boardCopy.movePiece(piece, move);
+            boardCopy.turn = boardCopy.turn ? white : black;
+
+            int score = min(&boardCopy, depth - 1, alpha, beta);
+
+            if (score > max) max = score;
+            if (score > alpha) alpha = score;
+            if (beta <= alpha) break;
+        }
+    }
+
+    return max;
     
-
 }
 
+int ChessAI::min(Board * board, int depth, int alpha, int beta)
+{
+    //printf("min depth: %d\n", depth);
+
+    /*
+    if ( depth == 0 ) return -evaluate();
+    int min = +oo;
+    for ( all moves) {
+        score = maxi( depth - 1 );
+        if( score < min )
+            min = score;
+    }
+    return min;
+    */
+
+    if (depth == 0) return -evaluatePosition(board);
+
+    int min = INT_MAX;
+
+    U64 piecesToCheck = board->occupancy[board->turn];
+
+    Board boardCopy = *board;
+
+    while (piecesToCheck)
+    {
+        boardCopy = *board;
+
+        int piece = pop_LSB(piecesToCheck);
+
+        U64 legalMoves = boardCopy.getLegalMoves(piece);
+
+        while (legalMoves)
+        {
+            int move = pop_LSB(legalMoves);
+
+            boardCopy = *board;
+            boardCopy.movePiece(piece, move);
+            boardCopy.turn = boardCopy.turn ? white : black;
+
+            int score = max(&boardCopy, depth - 1, alpha, beta);
+
+            if (score < min) min = score;
+            if (score < beta) beta = score;
+            if (beta <= alpha) break;
+        }
+    }
+
+    return min;
+}
 
 void ChessAI::getRandomMove(int * start, int * end, Board * board)
 {
@@ -78,20 +198,22 @@ void ChessAI::getRandomMove(int * start, int * end, Board * board)
 // return negative value if black is winning
 int ChessAI::evaluatePosition(Board * board)
 {
-    int whiteScore = 0;
-    int blackScore = 0;
+    int score = 0;
+    int opponentScore = 0;
 
-    whiteScore += countSetBits(board->pieces[white][pawn]) * 1;
-    whiteScore += countSetBits(board->pieces[white][knight]) * 3;
-    whiteScore += countSetBits(board->pieces[white][bishop]) * 3;
-    whiteScore += countSetBits(board->pieces[white][rook]) * 5;
-    whiteScore += countSetBits(board->pieces[white][queen]) * 9;
+    score += countSetBits(board->pieces[colour][pawn]) * 1;
+    score += countSetBits(board->pieces[colour][knight]) * 3;
+    score += countSetBits(board->pieces[colour][bishop]) * 3;
+    score += countSetBits(board->pieces[colour][rook]) * 5;
+    score += countSetBits(board->pieces[colour][queen]) * 9;
 
-    blackScore += countSetBits(board->pieces[black][pawn]) * 1;
-    blackScore += countSetBits(board->pieces[black][knight]) * 3;
-    blackScore += countSetBits(board->pieces[black][bishop]) * 3;
-    blackScore += countSetBits(board->pieces[black][rook]) * 5;
-    blackScore += countSetBits(board->pieces[black][queen]) * 9;
+    opponentScore += countSetBits(board->pieces[colour ? white : black][pawn]) * 1;
+    opponentScore += countSetBits(board->pieces[colour ? white : black][knight]) * 3;
+    opponentScore += countSetBits(board->pieces[colour ? white : black][bishop]) * 3;
+    opponentScore += countSetBits(board->pieces[colour ? white : black][rook]) * 5;
+    opponentScore += countSetBits(board->pieces[colour ? white : black][queen]) * 9;
 
-    return whiteScore - blackScore;
+    evaluations++;
+
+    return score - opponentScore;
 }

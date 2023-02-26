@@ -68,8 +68,6 @@ void Board::movePiece(int start, int end)
 
     if (type == king && (abs(start - end) == 2))
     {
-        printf("White King-side castle\n");
-
         int rookStart = 0;
         int rookEnd = 0;
 
@@ -271,7 +269,6 @@ U64 Board::getLegalMoves(int p)
                 && !get_bit(totalOccupancy, B1) && !get_bit(totalOccupancy, C1) && !get_bit(totalOccupancy, D1)
                 && !getAttackers(C1, black) && !getAttackers(D1, black))
             {
-                printf("setting white queen side castle\n");
                 set_bit(legalMoves, C1);
             }
             else if (colour == white && !whiteKingMoved && !h1Moved
@@ -279,7 +276,6 @@ U64 Board::getLegalMoves(int p)
                 && !get_bit(totalOccupancy, F1) && !get_bit(totalOccupancy, G1)
                 && !getAttackers(F1, black) && !getAttackers(G1, black))
             {
-                printf("setting white king side castle\n");
                 set_bit(legalMoves, G1);
             }
             else if (colour == black && !blackKingMoved && !a8Moved
@@ -287,7 +283,6 @@ U64 Board::getLegalMoves(int p)
                 && !get_bit(totalOccupancy, B8) && !get_bit(totalOccupancy, C8) && !get_bit(totalOccupancy, D8)
                 && !getAttackers(C8, white) && !getAttackers(D8, white))
             {
-                printf("setting black queen side castle\n");
                 set_bit(legalMoves, C8);
             }
             else if (colour == black && !blackKingMoved && !h8Moved
@@ -295,7 +290,6 @@ U64 Board::getLegalMoves(int p)
                 && !get_bit(totalOccupancy, F8) && !get_bit(totalOccupancy, G8)
                 && !getAttackers(F8, white) && !getAttackers(G8, white))
             {
-                printf("setting black king side castle\n");
                 set_bit(legalMoves, G8);
             }
             break;
@@ -338,6 +332,8 @@ U64 Board::getLegalMoves(int p)
             int tempMove = pop_LSB(tempLegalMoves);
 
             // move the piece to the current move on the copy of the board
+            // do I need to calculate pins here?
+                // pins have to do with the next move
             tempBoard.movePiece(p, tempMove);
 
             // if the king has attackers after making that move then remove it from the legal moves
