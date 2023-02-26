@@ -4,6 +4,7 @@
 #include <cctype>
 #include <ctype.h>
 #include "Board.hpp"
+#include "ChessAI.hpp"
 
 bool running = true;
 
@@ -56,39 +57,56 @@ int main()
 
     testBoard.totalOccupancy = testBoard.occupancy[white] | testBoard.occupancy[black];
 
+    ChessAI AI;
+
     std::string move;
     while (running)
     {
         testBoard.printBoard();
 
-        std::cout << "enter move: ";
-        std::getline(std::cin, move);
+        int moveStart = 0;
+        int moveEnd = 0;
 
-        // check if move is valid
-        if (strlen(move.c_str()) != 5
-            || !((move[0] >= 'a' && move[0] <= 'h') || (move[0] >= 'A' || move[0] <= 'H'))
-            || (isdigit(move[1]) == 0 || move[1] == '0' || move[1] == '9')
-            || !((move[3] >= 'a' && move[3] <= 'h') || (move[3] >= 'A' || move[3] <= 'H'))
-            || (isdigit(move[4]) == 0 || move[4] == '0' || move[4] == '9') || move[2] != ' ')
+        if (testBoard.turn == white)
         {
-            std::cout << "invalid move" << std::endl;
-            continue;
-        }
+            std::cout << "enter move: ";
+            std::getline(std::cin, move);
 
-        int moveStart = ((move[1] - '0' - 1) * 8) + (islower(move[0]) ? toupper(move[0]) : move[0]) - 'A';
-        int moveEnd = ((move[4] - '0' - 1) * 8) + (islower(move[3]) ? toupper(move[3]) : move[3]) - 'A';
+            // check if move is valid
+            if (strlen(move.c_str()) != 5
+                || !((move[0] >= 'a' && move[0] <= 'h') || (move[0] >= 'A' || move[0] <= 'H'))
+                || (isdigit(move[1]) == 0 || move[1] == '0' || move[1] == '9')
+                || !((move[3] >= 'a' && move[3] <= 'h') || (move[3] >= 'A' || move[3] <= 'H'))
+                || (isdigit(move[4]) == 0 || move[4] == '0' || move[4] == '9') || move[2] != ' ')
+            {
+                std::cout << "invalid move" << std::endl;
+                continue;
+            }
 
-        // valid move?
-        // calculate all the legal moves of the piece selected
+            moveStart = ((move[1] - '0' - 1) * 8) + (islower(move[0]) ? toupper(move[0]) : move[0]) - 'A';
+            moveEnd = ((move[4] - '0' - 1) * 8) + (islower(move[3]) ? toupper(move[3]) : move[3]) - 'A';
+
+            // valid move?
+            // calculate all the legal moves of the piece selected
+            
+            U64 legalMoves = testBoard.getLegalMoves(moveStart);
+
+            // if the move end is not in the legal moves then invalid
+            if (!get_bit(legalMoves, moveEnd))
+            {
+                printf("invalid move, not a legal move");
+                continue;
+            }
         
-        U64 legalMoves = testBoard.getLegalMoves(moveStart);
-
-        // if the move end is not in the legal moves then invalid
-        if (!get_bit(legalMoves, moveEnd))
-        {
-            printf("invalid move, not a legal move");
-            continue;
         }
+        else
+        {
+            AI.getRandomMove(&moveStart, &moveEnd, &testBoard);
+        }
+
+        
+
+        
         
         // move piece
         printf("move piece\n");

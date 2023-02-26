@@ -138,7 +138,20 @@ void Board::movePiece(int start, int end)
         totalOccupancy = occupancy[white] | occupancy[black];
 
     }
-    printf("Calculating pins:\n");
+
+    // promote pawn to queen
+    if ((type == pawn && colour == white && get_bit(RANK_8, end)) ||
+        (type == pawn && colour == black && get_bit(RANK_1, end)))
+    {
+        deletePiece(end);
+
+        set_bit(pieces[colour][queen], end);
+        set_bit(occupancy[colour], end);
+        set_bit(totalOccupancy, end);
+
+    }
+
+    // printf("Calculating pins:\n");
 
     // TODO: calculate if move pins a piece
 
@@ -290,24 +303,24 @@ U64 Board::getLegalMoves(int p)
             legalMoves = 0ULL;
     }
 
-    printf("Attacks: \n");
-    printBitBoard(legalMoves);
+    // printf("Attacks: \n");
+    // printBitBoard(legalMoves);
 
     // subtract the occupancy of team pieces
     legalMoves &= ~occupancy[colour];
 
-    printf("Psuedo Legal Moves: \n");
-    printBitBoard(legalMoves);
+    // printf("Psuedo Legal Moves: \n");
+    // printBitBoard(legalMoves);
 
-    printf("Pinned pieces: \n");
-    printBitBoard(pinnedPieces);
+    // printf("Pinned pieces: \n");
+    // printBitBoard(pinnedPieces);
 
     // if the player is checked and the move does not resolve the check then invalid
 
     // if the piece is pinned or there are pieces attacking the king
     if (get_bit(pinnedPieces, p) || getAttackers(get_LSB(pieces[colour][king]), colour ? Colour::white : Colour::black))
     {
-        printf("The king is in check or piece is pinned\n");
+        // printf("The king is in check or piece is pinned\n");
 
         // initialize a copy of the current legal moves
         U64 tempLegalMoves = legalMoves;
@@ -337,8 +350,8 @@ U64 Board::getLegalMoves(int p)
 
     }
     
-    printf("Legal Moves: \n");
-    printBitBoard(legalMoves);
+    // printf("Legal Moves: \n");
+    // printBitBoard(legalMoves);
 
 
     return legalMoves;
