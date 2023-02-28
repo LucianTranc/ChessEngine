@@ -1,7 +1,7 @@
 #pragma once
 #include "bitboard.hpp"
 
-static U64 getLegalPawnAttacks(int square, U64 occupancy, Colour turn)
+inline U64 getLegalPawnAttacks(int square, U64 occupancy, Colour turn)
 {
     U64 pawnAttacks = 0ULL;
 
@@ -28,7 +28,7 @@ static U64 getLegalPawnAttacks(int square, U64 occupancy, Colour turn)
 
 }
 
-static U64 getPawnMoves(int square, U64 occupancy, Colour turn)
+inline U64 getPawnMoves(int square, U64 occupancy, Colour turn)
 {
     U64 pawnMoves = 0ULL;
 
@@ -55,7 +55,7 @@ static U64 getPawnMoves(int square, U64 occupancy, Colour turn)
     return pawnMoves | getLegalPawnAttacks(square, occupancy, turn);
 }
 
-static U64 getPossiblePawnAttacks(int square, U64 occupancy, Colour turn)
+inline U64 getPossiblePawnAttacks(int square, U64 occupancy, Colour turn)
 {
     U64 pawnAttacks = 0ULL;
 
@@ -81,7 +81,7 @@ static U64 getPossiblePawnAttacks(int square, U64 occupancy, Colour turn)
 }
 
 
-static U64 getRookAttacks(int square, U64 occupancy)
+inline U64 getRookAttacks(int square, U64 occupancy)
 {
     U64 attacks = 0ULL;
     
@@ -115,7 +115,7 @@ static U64 getRookAttacks(int square, U64 occupancy)
     return attacks;
 }
 
-static U64 getBishopAttacks(int square, U64 occupancy)
+inline U64 getBishopAttacks(int square, U64 occupancy)
 {
     U64 attacks = 0ULL;
     
@@ -149,7 +149,7 @@ static U64 getBishopAttacks(int square, U64 occupancy)
     return attacks;
 }
 
-static U64 getKnightAttacks(int square)
+inline U64 getKnightAttacks(int square)
 {
 
     U64 attacks = 0ULL;
@@ -220,7 +220,7 @@ static U64 getKnightAttacks(int square)
     return attacks;
 }
 
-static U64 getKingAttacks(int square)
+inline U64 getKingAttacks(int square)
 {
 
     U64 attacks = 0ULL;
@@ -289,7 +289,7 @@ static U64 getKingAttacks(int square)
     return attacks;
 }
 
-static U64 getQueenAttacks(int square, U64 occupancy)
+inline U64 getQueenAttacks(int square, U64 occupancy)
 {
     return getBishopAttacks(square, occupancy) | getRookAttacks(square, occupancy);
 }

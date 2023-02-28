@@ -1,8 +1,14 @@
+// Lucian Tranc
+// Chess Engine
+// This file contains constants, typedefs, structs and functions necessary for chess bitboards
+
 #include <iostream>
 
+// unsigned 64 bit integer datatype
+// allows each of the 64 bits to represent 1 square on chess board
 typedef u_int64_t U64;
 
-// hex value representing the files and ranks
+// bitboards representing each of the files and ranks
 const U64 FILE_A = 0x0101010101010101ULL;
 const U64 FILE_B = FILE_A << 1;
 const U64 FILE_C = FILE_A << 2;
@@ -11,7 +17,6 @@ const U64 FILE_E = FILE_A << 4;
 const U64 FILE_F = FILE_A << 5;
 const U64 FILE_G = FILE_A << 6;
 const U64 FILE_H = FILE_A << 7;
-
 const U64 RANK_1 = 0xFFULL;
 const U64 RANK_2 = RANK_1 << 8;
 const U64 RANK_3 = RANK_1 << 16;
@@ -21,12 +26,14 @@ const U64 RANK_6 = RANK_1 << 40;
 const U64 RANK_7 = RANK_1 << 48;
 const U64 RANK_8 = RANK_1 << 56;
 
-
+// macros bit manipulation taken from:
+// https://alexanderameye.github.io/notes/chess-engine/
 #define set_bit(b, i) ((b) |= (1ULL << (i)))
 #define get_bit(b, i) ((b) & (1ULL << (i)))  
 #define clear_bit(b, i) ((b) &= ~(1ULL << (i))) 
 #define get_LSB(b) (__builtin_ctzll(b))
 
+// function that returns the index 
 inline int pop_LSB(U64 &b) {
     int i = get_LSB(b);
     b &= b - 1;
@@ -45,8 +52,8 @@ enum Square {
     A8, B8, C8, D8, E8, F8, G8, H8
 };
 
-// overloading << operator to print Square enum names
-static std::ostream &operator << (std::ostream& stream, Square s)
+// overloading << operator to print Square enum names (used mostly for debugging)
+[[maybe_unused]] static std::ostream &operator << (std::ostream& stream, Square s)
 {
     const std::string squareNames[] = {
         "A1", "B1", "C1", "D1", "E1", "F1", "G1", "H1",
@@ -61,12 +68,13 @@ static std::ostream &operator << (std::ostream& stream, Square s)
    return stream << squareNames[s];
 }
 
+// enum for the piece types
 enum Piece{
     pawn, knight, bishop, rook, queen, king
 };
 
-// overloading << operator to print Piece enum names
-static std::ostream &operator << (std::ostream& stream, Piece p)
+// overloading << operator to print Piece enum names. (used in Board::printBoard)
+[[maybe_unused]] static std::ostream &operator << (std::ostream& stream, Piece p)
 {
     const std::string squareNames[] = {
         "P", "N", "B", "R", "Q", "K"
@@ -78,8 +86,8 @@ enum Colour {
     white, black
 };
 
-// overloading << operator to print Colour enum names
-static std::ostream &operator << (std::ostream& stream, Colour c)
+// overloading << operator to print Colour enum names (used in Board::printBoard)
+[[maybe_unused]] inline std::ostream &operator << (std::ostream& stream, Colour c)
 {
     const std::string colourNames[] = {
         "w", "b"
@@ -87,12 +95,13 @@ static std::ostream &operator << (std::ostream& stream, Colour c)
    return stream << colourNames[c];
 }
 
+// enum for the game states
 enum GameState {
     active, whiteWin, blackWin, stalemate
 };
 
-// bitboard.cpp should have helper functions and macros
-static void printBitBoard(U64 bitboard)
+// helper function that prints a bitboard (used for debugging)
+inline void printBitBoard(U64 bitboard)
 {
     for (int i = 0; i < 64; i++)
     {
@@ -106,7 +115,8 @@ static void printBitBoard(U64 bitboard)
     return;
 }
 
-static int countSetBits(U64 board)
+// function that prints the number of bits set to 1 in a bitboard
+inline int countSetBits(U64 board)
 {
     unsigned int count = 0;
     while (board) {

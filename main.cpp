@@ -6,14 +6,18 @@
 #include "Board.hpp"
 #include "ChessAI.hpp"
 
+#define PLY 4
+
+// replace with printBoardUnicode() for prettier prints
+#define PRINTFUNCTION printBoard()
+
 bool running = true;
 
 int main()
 {
-    std::cout<<"Tranc Engine"<<std::endl;
-
     Board testBoard;
     
+    // initializing the board
     for (int i = 0; i < 6; i++)
     {
         testBoard.pieces[0][i] = 0ULL;
@@ -25,6 +29,7 @@ int main()
     testBoard.pinnedPieces = 0ULL;
     testBoard.turn = Colour::white;
 
+    // setting all the pieces
     testBoard.pieces[white][pawn] = RANK_2;
     set_bit(testBoard.pieces[white][bishop], C1);
     set_bit(testBoard.pieces[white][bishop], F1);
@@ -57,17 +62,41 @@ int main()
 
     testBoard.totalOccupancy = testBoard.occupancy[white] | testBoard.occupancy[black];
 
+
+    std::cout<<"\n\u2658 Lucian's Chess Engine \u2658"<<std::endl;
+
+    bool startGame = false;
+    std::string players;
+    int numPlayers = 0;
+
+    while (!startGame)
+    {
+        std::cout<<"\nEnter number of players (1 or 2):"<<std::endl;
+        std::getline(std::cin, players);
+
+        if (strlen(players.c_str()) != 1 || (players[0] != '1' && players[0] != '2'))
+        {
+            std::cout<<"Invalid input"<<std::endl;
+        }
+        else
+        {
+            numPlayers = players[0] - '0';
+            startGame = true;
+        }
+    }
+
+    // AI is controlling black
     ChessAI AI(black);
 
     std::string move;
     while (running)
     {
-        testBoard.printBoard();
+        testBoard.PRINTFUNCTION;
 
         int moveStart = 0;
         int moveEnd = 0;
 
-        if (testBoard.turn == white)
+        if (testBoard.turn == white || numPlayers == 2)
         {
             std::cout << "enter move: ";
             std::getline(std::cin, move);
@@ -101,12 +130,13 @@ int main()
         }
         else
         {
-            AI.getMove(&moveStart, &moveEnd, &testBoard, 4);
-            printf("evaluations: %d\n", AI.evaluations);
+            // AI will look 4 moves ahead. 
+            AI.getMove(&moveStart, &moveEnd, &testBoard, PLY);
+            printf("\nevaluations: %d\n", AI.evaluations);
+            std::cout<<"Move: "<<(Square)moveStart<<" "<<(Square)moveEnd<<std::endl;
         }
 
         // move piece
-        printf("move piece\n");
         testBoard.movePiece(moveStart, moveEnd);
         testBoard.turn = testBoard.turn ? Colour::white : Colour::black;
 
@@ -114,18 +144,21 @@ int main()
         
         switch (state)
         {
+            case active:
+                continue;
             case whiteWin:
-                testBoard.printBoard();
+                testBoard.PRINTFUNCTION;
                 printf("Checkmate, White wins\n");
                 return 0;
             case blackWin:
-                testBoard.printBoard();
+                testBoard.PRINTFUNCTION;
                 printf("Checkmate, Black wins\n");
                 return 0;
             case stalemate:
-                testBoard.printBoard();
+                testBoard.PRINTFUNCTION;
                 printf("Stalemate\n");
                 return 0;
+            
         }
 
     }
@@ -133,85 +166,3 @@ int main()
     return 0;
 }
 
-
-/*
----------------------  Magic bitboards notes  -------------------------------------
-Sources: https://www.chessprogramming.org/Magic_Bitboards 
------------------------------------------------------------------------------------
-
-Magic bitboards is a technique used to quickly find rook and bishop attacks.
-
-Rook and bishop attacks are harder to find since they are sliding peices. Unlike jumping peices like
-the knight who can basically teleport to a square, sliding peices can be blocked by other peices. So
-finding where a sliding peice can move to is dependent on the position of the players other peices, and
-the position of the opponents peices.
-
-Magic bitboards is a technique that uses prebuilt lookup tables to get the attack squares of a sliding peice
-at any given square. We use the position of the peice and a bitboard containing all occupied spaces on the
-board as a key to a dictionary that stores the attacking squares in every situation.
-
-We calculate a bitboard with all the blocking peices by doing the bitwise operation:
-(all occupied squares) & (squares the peice can slide to).
-
-We multiply the bitboard with all blocking peices by some magic number that gives us
-an index that is a smaller number than just the number value the bitboard
-with the blocking peices would be on its own.
- 
-                                                               any consecutive
-| relevant occupancy  bitboard with   |                       combination of
-| rook d4, 10 bits    occupied squares|                       the masked bits
-| . . . . . . . .     . . . . . . . . |    . . . . . . . .     4 5 6 B C E F G]
-| . . . 6 . . . .     . . . . . . . . |    . . .some . . .     . . . . . .[1 2
-| . . . 5 . . . .     . 1 . 1 . . . . |    . . . . . . . .     . . . . . . . .
-| . . . 4 . . . .     . . . . . . . . |    . . .magic. . .     . . . . . . . .
-| . B C . E F G .  &  . . . 1 1 . . . | *  . . . . . . . .  =  . . garbage . .    >> (64-10)
-| . . . 2 . . . .     . . . . . . . . |    . . .bits . . .     . . . . . . . .
-| . . . 1 . . . .     . 1 . . . . 1 . |    . . . . . . . .     . . . . . . . .
-| . . . . . . . .     . . . . . . . . |    . . . . . . . .     . . . . . . . .
-|                                     |
-
-So if you want to get a bishop attack at some square s, you could do:
-
-bishopAttacks [s][i];
-
-where i is the index that was calculated using the blocking squares times the magic number.
-
-U64 bishopAttacks[64] [512]; // 256 K
-U64 rookAttacks  [64][4096]; // 2048K
-
-struct SMagic {
-   U64 mask;  // to mask relevant squares of both lines (no outer squares)
-   U64 magic; // magic 64-bit factor
-};
-
-SMagic bishopTbl[64];
-SMagic rookTbl  [64];
-
-U64 bishopAttacks(U64 occ, enumSquare sq) {
-   occ &= bishopTbl[sq].mask;
-   occ *= bishopTbl[sq].magic;
-   occ >>= 64-9;
-   return bishopAttacks[sq][occ];
-}
-
-64 squares where the bishop can be, times 512 possible combinations the relevant squares can be in for the bishop
-64 squares where the rook can be, times 4048 possible combinations the relevant squares can be in for the rook
-
-Generating the tables:
-
-First you need to generate the magic tables that store the mask and the magic. (the mask is the
-squares the sliding peices can slide to and the magic is the random number we need to find)
-
-For each square on the board, generate the mask for the given sliding peice,
-
-Then for generating the magic you can just use trial and error.
-
-Possible Improvements: 
-
-
-For bishop and knight lookup attack lookup tables:
-1. Generate the magic numbers for the rook and bishop using:
-    https://www.chessprogramming.org/Looking_for_Magics#:~:text=Magic%20Bitboards%20is%20probably%20the,of%20a%20bishop%20or%20rook. 
-        - Write your own attack and mask functions for rooks and bishops
-        - Copy the rest of the code and translate it to C++
-*/

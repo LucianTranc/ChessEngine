@@ -1,18 +1,21 @@
 #include "Board.hpp"
 
+// print the board
 void Board::printBoard()
 {
     if (turn == white)   printf("\nWhite to move\n");
-    else                        printf("\nBlack to move\n");
+    else                 printf("\nBlack to move\n");
     
     for (int i = 0; i < 64; i++)
     {
         // print ranks
         if (i%8 == 0) printf("%d  ", i/8 + 1);
 
+        // get square information
         int type = getPieceType(i);
         int colour = getPieceColour(i);
 
+        // if the square is empty
         if (type == -1 || colour == -1)
         {
             std::cout<<".  ";
@@ -20,9 +23,11 @@ void Board::printBoard()
             continue;
         }
 
+        // print the square
         std::cout<<(Colour)colour;
         std::cout<<(Piece)type<<" ";
 
+        // newline every 8 squares
         if ((i+1)%8 == 0) std::cout<<std::endl;
 
     }
@@ -30,6 +35,89 @@ void Board::printBoard()
     return;
 }
 
+// prints the board with unicode chess piece characters and with white on bottom
+void Board::printBoardUnicode()
+{
+    if (turn == white)   printf("\nWhite to move\n");
+    else                 printf("\nBlack to move\n");
+    
+    for (int i = 7; i >= 0; i--)
+    {
+        printf("%d  ", i + 1);
+
+        for (int j = 0; j < 8; j++)
+        {
+            int p = (i*8) + j;
+            // print ranks
+
+            // get square information
+            int type = getPieceType(p);
+            int colour = getPieceColour(p);
+
+            // if the square is empty
+            if (type == -1 || colour == -1)
+            {
+                std::cout<<".  ";
+                continue;
+            }
+
+            if (colour == white)
+            {
+                switch (type)
+                {
+                    case pawn:
+                        std::cout<<"\u265F"<<"  ";
+                        break;
+                    case knight:
+                        std::cout<<"\u265E"<<"  ";
+                        break;
+                    case bishop:
+                        std::cout<<"\u265D"<<"  ";
+                        break;
+                    case rook:
+                        std::cout<<"\u265C"<<"  ";
+                        break;
+                    case queen:
+                        std::cout<<"\u265B"<<"  ";
+                        break;
+                    case king:
+                        std::cout<<"\u265A"<<"  ";
+                        break;
+                }
+            }
+            else
+            {
+                switch (type)
+                {
+                    case pawn:
+                        std::cout<<"\u2659"<<"  ";
+                        break;
+                    case knight:
+                        std::cout<<"\u2658"<<"  ";
+                        break;
+                    case bishop:
+                        std::cout<<"\u2657"<<"  ";
+                        break;
+                    case rook:
+                        std::cout<<"\u2656"<<"  ";
+                        break;
+                    case queen:
+                        std::cout<<"\u2655"<<"  ";
+                        break;
+                    case king:
+                        std::cout<<"\u2654"<<"  ";
+                        break;
+                }
+            }
+        }
+        printf("\n");
+    }
+    printf("   A  B  C  D  E  F  G  H\n");
+    return;
+}
+
+// deletes a piece from the board
+// used mostly to check if a piece is pinned
 void Board::deletePiece(int position)
 {
     int type = getPieceType(position);
@@ -49,6 +137,7 @@ void Board::deletePiece(int position)
 
 }
 
+// moves piece, only calculates the number of pins if calculatePins is true.
 void Board::movePiece(int start, int end, bool calculatePins)
 {
 
@@ -65,7 +154,6 @@ void Board::movePiece(int start, int end, bool calculatePins)
     else if (!blackKingMoved && start == E8) blackKingMoved = true;
     
     // check if castle
-
     if (type == king && (abs(start - end) == 2))
     {
         int rookStart = 0;
@@ -92,12 +180,17 @@ void Board::movePiece(int start, int end, bool calculatePins)
             rookEnd = D8;
         }
 
+        // delete the rooks from the board occupancy
         occupancy[colour] &= ~pieces[colour][rook];
+        
+        // move the rook
         clear_bit(pieces[colour][rook], rookStart);
         set_bit(pieces[colour][rook], rookEnd);
 
+        // add the rooks to the board occupancy;
         occupancy[colour] |= pieces[colour][rook];
 
+        // recalculate total occupancy
         totalOccupancy = occupancy[white] | occupancy[black];
     }
 
@@ -149,37 +242,44 @@ void Board::movePiece(int start, int end, bool calculatePins)
 
     }
 
-    // printf("Calculating pins:\n");
-
-    // TODO: calculate if move pins a piece
-
-    // for every piece on the board, if deleting it means that the side is in check,
-    // then the piece is pinned
-
+    // if we are not to calculate the pins the return here
     if (!calculatePins) return;
 
     pinnedPieces = 0ULL;
 
     Board tempBoard;
 
+    // the squares that could possibly contain pinned pieces are the squares on the diagonals and
+    // straights. A piece can't be pinned by a knight
     U64 possibleWhitePins = getBishopAttacks(get_LSB(pieces[white][king]), totalOccupancy);
     possibleWhitePins |= getRookAttacks(get_LSB(pieces[white][king]), totalOccupancy);
     U64 whitePieces = occupancy[white] & possibleWhitePins;
 
     while (whitePieces)
     {
+        // create a copy of the board
         tempBoard = *this;
+
+        // pop the piece from the list of possibly pinned pieces
         int piece = pop_LSB(whitePieces);
+
+        // count the number of checks the king has with the piece on the board
         int checksWithPiece = countSetBits(tempBoard.getAttackers(get_LSB(tempBoard.pieces[white][king]), black));
+        
+        // remove the piece from the board
         tempBoard.deletePiece(piece);
+
+        // count the number of checks the king has with the piece not on the board
         int checksWithoutPiece = countSetBits(tempBoard.getAttackers(get_LSB(tempBoard.pieces[white][king]), black));
 
+        // if there are more checks with the piece than without it then it is pinned
         if (checksWithoutPiece > checksWithPiece)
         {
             set_bit(pinnedPieces, piece);
         }
     }
 
+    // do the same for black
     U64 possibleBlackPins = getBishopAttacks(get_LSB(pieces[black][king]), totalOccupancy);
     possibleBlackPins |= getRookAttacks(get_LSB(pieces[black][king]), totalOccupancy);
     U64 blackPieces = occupancy[black] & possibleBlackPins;
@@ -201,6 +301,7 @@ void Board::movePiece(int start, int end, bool calculatePins)
 
 }
 
+// returns the colour of the piece at a certain square, if empty then -1.
 int Board::getPieceColour(int p)
 {
     if (get_bit(occupancy[white], p))
@@ -215,6 +316,7 @@ int Board::getPieceColour(int p)
     return -1;
 }
 
+// returns the type of the piece at a certain square, if empty then -1.
 int Board::getPieceType(int p)
 {
     for (int i = 0; i < 6; i++)
@@ -228,6 +330,7 @@ int Board::getPieceType(int p)
     return -1;
 }
 
+// returns a bitboard with all the legal moves a piece can make
 U64 Board::getLegalMoves(int p)
 {
     U64 legalMoves = 0ULL;
@@ -262,6 +365,7 @@ U64 Board::getLegalMoves(int p)
             break;
         case 5:
             legalMoves = getKingAttacks(p);
+            // for checking of castling is a legal move:
                 // check if the king is in check
                 // check if the spaces between rook and king are clear.
                 // check if the square the king will pass over or the
@@ -299,24 +403,15 @@ U64 Board::getLegalMoves(int p)
             legalMoves = 0ULL;
     }
 
-    // printf("Attacks: \n");
-    // printBitBoard(legalMoves);
-
-    // subtract the occupancy of team pieces
+    // subtract the occupancy of team pieces (you can't capture a team piece)
     legalMoves &= ~occupancy[colour];
 
-    // printf("Psuedo Legal Moves: \n");
-    // printBitBoard(legalMoves);
-
-    // printf("Pinned pieces: \n");
-    // printBitBoard(pinnedPieces);
-
-    // if the player is checked and the move does not resolve the check then invalid
-
-    // if the piece is pinned or there are pieces attacking the king
+    // normally the attacking squares minus the team occupancy will be all the legal moves.
+    // However, if the piece is pinned or the king is in check then the legal moves will be a subset of that.
+    // Finding this subset is fairly expensive which is why pinned pieces is calculated on every move
+    // if the piece is pinned or there are pieces attacking the king, then check it more thourougly
     if (get_bit(pinnedPieces, p) || getAttackers(get_LSB(pieces[colour][king]), colour ? Colour::white : Colour::black))
     {
-        // printf("The king is in check or piece is pinned\n");
 
         // initialize a copy of the current legal moves
         U64 tempLegalMoves = legalMoves;
@@ -333,8 +428,8 @@ U64 Board::getLegalMoves(int p)
             int tempMove = pop_LSB(tempLegalMoves);
 
             // move the piece to the current move on the copy of the board
-            // do I need to calculate pins here?
-                // pins have to do with the next move
+            // the third parameter of this function call is false so movePiece doesn't
+            // calculate the pins. We don't care about 2 moves in advance so it isn't necessary
             tempBoard.movePiece(p, tempMove, false);
 
             // if the king has attackers after making that move then remove it from the legal moves
@@ -346,22 +441,20 @@ U64 Board::getLegalMoves(int p)
         }
 
     }
-    
-    // printf("Legal Moves: \n");
-    // printBitBoard(legalMoves);
-
 
     return legalMoves;
 }
 
-// get all pieces that attack position "target" that have a colour "colour", 
+// get all pieces that attack position "target" that have a colour "attackingColour", 
 U64 Board::getAttackers(int target, int attackingColour)
 {
     U64 attackers = 0ULL;
     U64 possibleAttackers = occupancy[attackingColour];
 
+    // loop over attackers
     while (possibleAttackers)
     {
+        // pop the attacker and get its type
         int attackerPosition = pop_LSB(possibleAttackers);
         int type = getPieceType(attackerPosition);
 
@@ -399,6 +492,7 @@ U64 Board::getAttackers(int target, int attackingColour)
     return attackers;
 }
 
+// checks if the state of the game
 GameState Board::getGameState()
 {
     bool whiteHasLegalMove = false;
