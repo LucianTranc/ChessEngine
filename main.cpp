@@ -9,7 +9,7 @@
 #define PLY 4
 
 // replace with printBoardUnicode() for prettier prints
-#define PRINTFUNCTION printBoard()
+#define PRINTFUNCTION printBoardUnicode()
 
 bool running = true;
 

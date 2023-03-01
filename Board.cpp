@@ -377,21 +377,21 @@ U64 Board::getLegalMoves(int p)
             {
                 set_bit(legalMoves, C1);
             }
-            else if (colour == white && !whiteKingMoved && !h1Moved
+            if (colour == white && !whiteKingMoved && !h1Moved
                 && !getAttackers(get_LSB(pieces[colour][king]), black)
                 && !get_bit(totalOccupancy, F1) && !get_bit(totalOccupancy, G1)
                 && !getAttackers(F1, black) && !getAttackers(G1, black))
             {
                 set_bit(legalMoves, G1);
             }
-            else if (colour == black && !blackKingMoved && !a8Moved
+            if (colour == black && !blackKingMoved && !a8Moved
                 && !getAttackers(get_LSB(pieces[colour][king]), white)
                 && !get_bit(totalOccupancy, B8) && !get_bit(totalOccupancy, C8) && !get_bit(totalOccupancy, D8)
                 && !getAttackers(C8, white) && !getAttackers(D8, white))
             {
                 set_bit(legalMoves, C8);
             }
-            else if (colour == black && !blackKingMoved && !h8Moved
+            if (colour == black && !blackKingMoved && !h8Moved
                 && !getAttackers(get_LSB(pieces[colour][king]), white)
                 && !get_bit(totalOccupancy, F8) && !get_bit(totalOccupancy, G8)
                 && !getAttackers(F8, white) && !getAttackers(G8, white))

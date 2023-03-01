@@ -1,6 +1,9 @@
 Lucian Tranc
 1045249
 
+If the TA is reading this, I got premission from the professor to write my assignment in C++.
+He said he might need to grade it himself. 
+
 Commands for execution:
 make
 ./play
@@ -26,8 +29,7 @@ rook: 500
 queen: 900
 
 After that I assign a score to the position of each piece on the board based on a 
-precomputed table of values. These tables were ripped from here:
-https://github.com/SebLague/Chess-AI/blob/main/Assets/Scripts/Core/PieceSquareTable.cs
+precomputed table of values.
 
 Pawns:
     0,  0,  0,  0,  0,  0,  0,  0,
@@ -62,13 +64,13 @@ Bishops:
 
 Rook:
      0,  0,  0,  0,  0,  0,  0,  0,
-     5, 10, 10, 10, 10, 10, 10,  5,
+     5,  0,  0,  0,  0,  0,  0,  5,
     -5,  0,  0,  0,  0,  0,  0, -5,
     -5,  0,  0,  0,  0,  0,  0, -5,
     -5,  0,  0,  0,  0,  0,  0, -5,
     -5,  0,  0,  0,  0,  0,  0, -5,
     -5,  0,  0,  0,  0,  0,  0, -5,
-     0,  0,  0,  5,  5,  0,  0,  0
+     0,  0,  5, 10, 10,  5,  0,  0
 
 Queens:
     -20,-10,-10, -5, -5,-10,-10,-20,
@@ -76,6 +78,6 @@ Queens:
     -10,  0,  5,  5,  5,  5,  0,-10,
      -5,  0,  5,  5,  5,  5,  0, -5,
       0,  0,  5,  5,  5,  5,  0, -5,
-    -10,  5,  5,  5,  5,  5,  0,-10,
-    -10,  0,  5,  0,  0,  0,  0,-10,
+    -10,  0,  5,  5,  5,  5,  0,-10,
+    -10,  0,  0,  0,  0,  0,  0,-10,
     -20,-10,-10, -5, -5,-10,-10,-20

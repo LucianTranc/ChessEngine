@@ -27,7 +27,7 @@ const U64 RANK_7 = RANK_1 << 48;
 const U64 RANK_8 = RANK_1 << 56;
 
 // macros bit manipulation taken from:
-// https://alexanderameye.github.io/notes/chess-engine/
+// https://aticleworld.com/macros-for-bit-manipulation-c-cpp/
 #define set_bit(b, i) ((b) |= (1ULL << (i)))
 #define get_bit(b, i) ((b) & (1ULL << (i)))  
 #define clear_bit(b, i) ((b) &= ~(1ULL << (i))) 

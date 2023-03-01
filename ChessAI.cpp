@@ -233,7 +233,6 @@ int ChessAI::evaluatePosition(Board * board)
     score += countSetBits(board->pieces[colour][queen]) * 900;
 
     // for each type of piece, add the score based on their positions
-
     U64 pieces = board->pieces[colour][pawn];
     while (pieces)
     {
@@ -249,13 +248,13 @@ int ChessAI::evaluatePosition(Board * board)
     pieces = board->pieces[colour][bishop];
     while (pieces)
     {
-        score += bishopPositions[pop_LSB(pieces)];
+        score += bishopPositions[colour][pop_LSB(pieces)];
     }
 
     pieces = board->pieces[colour][rook];
     while (pieces)
     {
-        score += rookPositions[pop_LSB(pieces)];
+        score += rookPositions[colour][pop_LSB(pieces)];
     }
 
     pieces = board->pieces[colour][queen];
@@ -285,13 +284,13 @@ int ChessAI::evaluatePosition(Board * board)
     pieces = board->pieces[opponentColour][bishop];
     while (pieces)
     {
-        opponentScore += bishopPositions[pop_LSB(pieces)];
+        opponentScore += bishopPositions[colour][pop_LSB(pieces)];
     }
 
     pieces = board->pieces[opponentColour][rook];
     while (pieces)
     {
-        opponentScore += rookPositions[pop_LSB(pieces)];
+        opponentScore += rookPositions[opponentColour][pop_LSB(pieces)];
     }
 
     pieces = board->pieces[opponentColour][queen];
